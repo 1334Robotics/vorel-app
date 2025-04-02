@@ -159,17 +159,34 @@ router.get('/', async (req, res) => {
     
     // Extract ranking information
     let teamRanking = null;
-    let totalRankingPoints = 0;
-    
+
     if (teamStatus && teamStatus.qual && teamStatus.qual.ranking) {
+      
+      // For 2025 REEFSCAPE, we need to calculate the total RP correctly
+      // First, check if ranking_points is directly available
+      let totalRP = 0;
+      
+      if (teamStatus.qual.ranking.ranking_points !== undefined) {
+        // If TBA provides ranking_points directly
+        totalRP = teamStatus.qual.ranking.ranking_points;
+      } else if (teamStatus.qual.ranking.extra_stats && teamStatus.qual.ranking.extra_stats.length > 0) {
+        // Try extra_stats (sometimes TBA puts RP here)
+        totalRP = teamStatus.qual.ranking.extra_stats[0] || 0;
+      } else if (teamStatus.qual.ranking.sort_orders && teamStatus.qual.ranking.sort_orders.length > 0) {
+        // Try sort_orders (another place TBA may put RP)
+        totalRP = teamStatus.qual.ranking.sort_orders[0] || 0;
+      }
+      
+      // Get matches played
+      const matchesPlayed = teamStatus.qual.ranking.matches_played || 0;
+      
       teamRanking = {
         rank: teamStatus.qual.ranking.rank,
-        totalRP: teamStatus.qual.ranking.sort_orders[0], // First sort order is usually total RP
+        totalRP: totalRP,
         matches: teamStatus.qual.num_teams,
-        record: `${teamStatus.qual.ranking.record.wins}-${teamStatus.qual.ranking.record.losses}-${teamStatus.qual.ranking.record.ties}`
+        record: `${teamStatus.qual.ranking.record.wins}-${teamStatus.qual.ranking.record.losses}-${teamStatus.qual.ranking.record.ties}`,
+        matchesPlayed: matchesPlayed
       };
-      
-      totalRankingPoints = teamStatus.qual.ranking.sort_orders[0];
     }
     
     // Rest of the existing code
@@ -296,16 +313,36 @@ router.get('/embed', async (req, res) => {
     // Extract ranking information
     let teamRanking = null;
     let totalRankingPoints = 0;
-    
+
     if (teamStatus && teamStatus.qual && teamStatus.qual.ranking) {
+      
+      // For 2025 REEFSCAPE, we need to calculate the total RP correctly
+      // First, check if ranking_points is directly available
+      let totalRP = 0;
+      
+      if (teamStatus.qual.ranking.ranking_points !== undefined) {
+        // If TBA provides ranking_points directly
+        totalRP = teamStatus.qual.ranking.ranking_points;
+      } else if (teamStatus.qual.ranking.extra_stats && teamStatus.qual.ranking.extra_stats.length > 0) {
+        // Try extra_stats (sometimes TBA puts RP here)
+        totalRP = teamStatus.qual.ranking.extra_stats[0] || 0;
+      } else if (teamStatus.qual.ranking.sort_orders && teamStatus.qual.ranking.sort_orders.length > 0) {
+        // Try sort_orders (another place TBA may put RP)
+        totalRP = teamStatus.qual.ranking.sort_orders[0] || 0;
+      }
+      
+      // Get matches played
+      const matchesPlayed = teamStatus.qual.ranking.matches_played || 0;
+      
       teamRanking = {
         rank: teamStatus.qual.ranking.rank,
-        totalRP: teamStatus.qual.ranking.sort_orders[0], // First sort order is usually total RP
+        totalRP: totalRP,
         matches: teamStatus.qual.num_teams,
-        record: `${teamStatus.qual.ranking.record.wins}-${teamStatus.qual.ranking.record.losses}-${teamStatus.qual.ranking.record.ties}`
+        record: `${teamStatus.qual.ranking.record.wins}-${teamStatus.qual.ranking.record.losses}-${teamStatus.qual.ranking.record.ties}`,
+        matchesPlayed: matchesPlayed
       };
       
-      totalRankingPoints = teamStatus.qual.ranking.sort_orders[0];
+      totalRankingPoints = totalRP;
     }
     
     // Use these variables from the fetched data
