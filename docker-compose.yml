@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/melodydevelopment/frc-matches-fetcher:main
+    image: ghcr.io/1334Robotics/frc-matches-fetcher:main
     restart: always
     environment:
       - NODE_ENV=production
