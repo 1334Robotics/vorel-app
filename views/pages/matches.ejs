@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team <%= formattedTeamKey %> Matches</title>
+  <%- include('../partials/styles') %>
+</head>
+<body>
+  <div class="container">
+    <%- include('../partials/header', { formattedTeamKey, eventKey, nowQueuing }) %>
+    
+    <div class="content">
+      <% if (Object.keys(matchGroups).length === 0 && completedMatches.length === 0) { %>
+        <div class="no-matches">
+          <p>No matches found for team <%= formattedTeamKey %></p>
+        </div>
+      <% } else { %>
+        <!-- Active/Upcoming Matches -->
+        <% Object.keys(matchGroups).forEach(groupType => { %>
+          <%- include('../partials/matchGroup', { 
+            groupType, 
+            matches: matchGroups[groupType], 
+            formattedTeamKey,
+            isCompletedGroup: false
+          }) %>
+        <% }); %>
+        
+        <!-- Completed Matches -->
+        <% if (completedMatches.length > 0) { %>
+          <%- include('../partials/matchGroup', { 
+            groupType: 'Completed', 
+            matches: completedMatches, 
+            formattedTeamKey,
+            isCompletedGroup: true
+          }) %>
+        <% } %>
+      <% } %>
+    </div>
+    
+    <%- include('../partials/footer', { eventKey }) %>
+  </div>
+  
+  <%- include('../partials/scripts', { eventKey }) %>
+</body>
+</html>

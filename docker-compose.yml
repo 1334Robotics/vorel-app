@@ -1,0 +1,29 @@
+services:
+  app:
+    image: ghcr.io/melodydevelopment/frc-matches-fetcher:main
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=${Port:-3002}
+      - Nexus_Api_Key=${Nexus_Api_Key}
+      - TBA_API_Key=${TBA_API_Key}
+    ports:
+      - "${Port:-3002}:${Port:-3002}"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:${Port:-3002}/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.scope=nexus-matchs"
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 60 --cleanup --rolling-restart --scope nexus-matchs --label-enable
+    restart: always
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=60

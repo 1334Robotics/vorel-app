@@ -1,0 +1,27 @@
+{
+  "name": "frc-matches-fetcher",
+  "version": "1.0.0",
+  "description": "A service to fetch alliance matches of a specific team in an event using the Blue Alliance API.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server/index.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "dependencies": {
+    "axios": "^1.8.4",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "frc-matches-fetcher": "file:"
+  },
+  "keywords": [
+    "blue-alliance",
+    "api",
+    "matches",
+    "team"
+  ],
+  "author": "Melodydevelopment",
+  "license": "GNU GENERAL PUBLIC LICENSE"
+}

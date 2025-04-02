@@ -1,0 +1,64 @@
+<script>
+  function toggleMatch(matchId) {
+    const card = document.getElementById(matchId);
+    card.classList.toggle('active');
+    saveOpenMatches();
+  }
+  
+  function saveOpenMatches() {
+    const openMatches = Array.from(document.querySelectorAll('.match-card.active')).map(card => card.id);
+    localStorage.setItem('openMatches', JSON.stringify(openMatches));
+  }
+  
+  function restoreOpenMatches() {
+    const stored = localStorage.getItem('openMatches');
+    if (stored) {
+      const openMatches = JSON.parse(stored);
+      openMatches.forEach(matchId => {
+        const card = document.getElementById(matchId);
+        if (card) card.classList.add('active');
+      });
+    }
+  }
+  
+  let currentDataHash = "";
+  let checkInterval = 10000; // 10 seconds interval
+  let updateTimer;
+  
+  async function checkForUpdates() {
+    const updateStatus = document.getElementById('update-status');
+    const hashDisplay = document.getElementById('hash-display');
+    try {
+      updateStatus.innerHTML = 'Checking for updates...';
+      const response = await fetch('/api/data-check?eventKey=' + encodeURIComponent('<%= eventKey %>') + '&lastUpdate=' + currentDataHash);
+      const data = await response.json();
+      if (data.changed) {
+        saveOpenMatches();
+        updateStatus.innerHTML = 'New data available! Refreshing...';
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        currentDataHash = data.hash;
+        const shortHash = currentDataHash.substring(0, 8);
+        const lastChecked = new Date().toLocaleTimeString();
+        updateStatus.innerHTML = 'Data provided by FIRST Nexus API • Last updated: ' + new Date().toLocaleString() + ' • Last checked: ' + lastChecked;
+        hashDisplay.innerHTML = 'Hash: ' + shortHash;
+        updateTimer = setTimeout(checkForUpdates, checkInterval);
+      }
+    } catch (error) {
+      console.error('Error checking for updates:', error);
+      updateStatus.innerHTML = 'Update check failed. Retrying soon...';
+      updateTimer = setTimeout(checkForUpdates, checkInterval * 2);
+    }
+  }
+  
+  document.addEventListener('DOMContentLoaded', () => {
+    restoreOpenMatches();
+    setTimeout(checkForUpdates, 1000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        clearTimeout(updateTimer);
+        checkForUpdates();
+      }
+    });
+  });
+</script>

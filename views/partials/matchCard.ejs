@@ -1,0 +1,132 @@
+<% 
+  const isRed = match.redTeams.includes(formattedTeamKey);
+  const allianceColor = isRed ? "red" : "blue";
+  
+  let timeDisplay = "TBD";
+  if (match.times.scheduledStartTime) {
+    const matchDate = new Date(match.times.scheduledStartTime);
+    timeDisplay = matchDate.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Canada/Eastern' // Ensure EST
+    });
+  }
+  
+  let statusClass = "status-default";
+  if (match.status === "Now queuing") statusClass = "status-queuing";
+  else if (match.status === "On deck") statusClass = "status-on-deck";
+  else if (match.status === "On field") statusClass = "status-on-field";
+  
+  // New: Result indicators
+  let resultClass = "";
+  let resultText = "";
+  if (match.result === "win") {
+    resultClass = "result-win";
+    resultText = "Win";
+  } else if (match.result === "loss") {
+    resultClass = "result-loss";
+    resultText = "Loss";
+  } else if (match.result === "tie") {
+    resultClass = "result-tie";
+    resultText = "Tie";
+  }
+%>
+
+<div class="match-card" id="match-<%= match.label.replace(' ', '-') %>">
+  <div class="match-header" onclick="toggleMatch(this.parentNode.id)">
+    <div class="match-header-left">
+      <div class="alliance-dot <%= allianceColor %>-alliance"></div>
+      <div class="match-number"><%= match.label %></div>
+      <div class="match-status <%= statusClass %>"><%= match.status %></div>
+      <% if (match.status === "Completed" && match.result) { %>
+        <div class="match-result <%= resultClass %>"><%= resultText %></div>
+        <% if (match.score) { %>
+          <div class="match-score"><%= match.score.alliance %> - <%= match.score.opposing %></div>
+        <% } %>
+      <% } %>
+    </div>
+    <div class="match-time"><%= timeDisplay %></div>
+  </div>
+  <div class="match-content">
+    <div class="match-details">
+      <div class="alliance-section">
+        <div class="alliance-title red-title">
+          <% if (isCompletedGroup) { %>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 5px;">
+              <path d="M2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#f44336" stroke-width="2"/>
+              <path d="M2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12Z" stroke="#f44336" stroke-width="2"/>
+            </svg>
+          <% } %>
+          Red Alliance
+        </div>
+        <div class="alliance-teams">
+          <% match.redTeams.forEach(team => { %>
+            <div class="team-chip red-team <%= team === formattedTeamKey ? 'highlight' : '' %>">Team <%= team %></div>
+          <% }); %>
+        </div>
+      </div>
+      <div class="alliance-section">
+        <div class="alliance-title blue-title">
+          <% if (isCompletedGroup) { %>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 5px;">
+              <path d="M2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12Z" fill="#2196f3" opacity="0.2"/>
+              <path d="M2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12Z" stroke="#2196f3" stroke-width="2"/>
+            </svg>
+          <% } %>
+          Blue Alliance
+        </div>
+        <div class="alliance-teams">
+          <% match.blueTeams.forEach(team => { %>
+            <div class="team-chip blue-team <%= team === formattedTeamKey ? 'highlight' : '' %>">Team <%= team %></div>
+          <% }); %>
+        </div>
+      </div>
+      
+      <!-- New: Display Ranking Points section for completed matches -->
+      <% if (match.status === "Completed" && match.rankingPoints) { %>
+        <div class="result-section">
+          <div class="result-title <%= resultClass ? 'result-' + match.result + '-title' : '' %>">
+            Ranking Points: <%= match.rankingPoints.total %>
+          </div>
+          <% if (match.rankingPoints.breakdown && match.rankingPoints.breakdown.length > 0) { %>
+            <div class="rp-breakdown">
+              <% match.rankingPoints.breakdown.forEach(rp => { %>
+                <div class="rp-item"><%= rp %></div>
+              <% }); %>
+            </div>
+          <% } %>
+        </div>
+      <% } %>
+      
+      <div class="time-section">
+        <div class="time-label">Match Times</div>
+        <div class="time-row">Scheduled: <%= new Date(match.times.scheduledStartTime).toLocaleString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'Canada/Eastern'
+        }) %></div>
+        <% if (match.times.estimatedStartTime) { %>
+          <div class="time-row">Estimated: <%= new Date(match.times.estimatedStartTime).toLocaleString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+            timeZone: 'Canada/Eastern'
+          }) %></div>
+        <% } %>
+      </div>
+      <% if (match.breakAfter) { %>
+        <div class="break-indicator">
+          <% if (isCompletedGroup) { %>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 5px; vertical-align: text-bottom;">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#ffc107" stroke-width="2"/>
+              <path d="M12 6V12L16 14" stroke="#ffc107" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          <% } %>
+          Break after this match: <%= match.breakAfter %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>

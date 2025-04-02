@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus Matches - Enter Team and Event Keys</title>
+  <%- include('../partials/styles') %>
+  <style>
+    .form-container {
+      background-color: #1d1d1d;
+      border-radius: 8px;
+      padding: 25px;
+      margin: 20px 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .form-title {
+      color: #4fc3f7;
+      font-size: 1.3em;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 5px;
+      color: #e0e0e0;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      background-color: #333;
+      border: 1px solid #444;
+      border-radius: 4px;
+      color: #e0e0e0;
+      font-size: 1em;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+    input[type="text"]::placeholder {
+      color: #888;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 20px;
+      font-size: 1em;
+      background: linear-gradient(135deg, #8B0000, #660000);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      FRC Matches Fetcher
+    </div>
+    
+    <div class="content">
+      <div class="form-container">
+        <div class="form-title">Enter Team and Event Details</div>
+        <form method="get" action="/">
+          <label for="teamKey">Team Key:</label>
+          <input type="text" name="teamKey" id="teamKey" required placeholder="ex: frc254" />
+          
+          <label for="eventKey">Event Key:</label>
+          <input type="text" name="eventKey" id="eventKey" required placeholder="ex: 2025miket" />
+          
+          <button type="submit">View Matches</button>
+        </form>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div>Data provided by FIRST Nexus API</div>
+      <div>FRC Matches Fetcher © 2025</div>
+    </div>
+  </div>
+</body>
+</html>
