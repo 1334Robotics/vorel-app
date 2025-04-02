@@ -437,12 +437,30 @@ router.get('/api/health', (req, res) => {
 
 // Add a data-check endpoint to detect changes
 router.get('/api/data-check', async (req, res) => {
-  let { eventKey, lastUpdate } = req.query;
+  let { eventKey, teamKey, lastUpdate } = req.query;
 
   try {
+    // Fetch Nexus data
     const eventData = await fetchEventDetails(eventKey);
     if (!eventData) {
       return res.status(404).json({ error: 'Event not found' });
+    }
+
+    // Fetch TBA data if teamKey is provided
+    let tbaMatchData = [];
+    let teamRankingData = null;
+    if (teamKey) {
+      // Format team key for TBA
+      const formattedTeamKey = teamKey.startsWith('frc') ? teamKey : `frc${teamKey}`;
+      
+      // Get TBA match results
+      tbaMatchData = await fetchEventMatchResults(eventKey);
+      
+      // Get team ranking from TBA
+      const teamStatus = await fetchTeamStatusAtEvent(formattedTeamKey, eventKey);
+      if (teamStatus && teamStatus.qual && teamStatus.qual.ranking) {
+        teamRankingData = teamStatus.qual.ranking;
+      }
     }
 
     // Create a copy of matches for modification
@@ -471,15 +489,42 @@ router.get('/api/data-check', async (req, res) => {
       }
     }
 
-    // Create a consistent hash of important data
-    const dataHash = JSON.stringify({
+    // Create a hash that includes both Nexus and TBA data
+    const dataObj = {
+      // Nexus data
       nowQueuing: eventData.nowQueuing || null,
       matchStatuses: modifiedMatches.map(m => ({
         id: m.label.replace(/\s+/g, '-'),
         status: m.status.trim()
-      })).sort((a, b) => a.id.localeCompare(b.id))
-    });
+      })).sort((a, b) => a.id.localeCompare(b.id)),
+      
+      // TBA data
+      tbaMatches: tbaMatchData.map(m => ({
+        key: m.key,
+        comp_level: m.comp_level,
+        match_number: m.match_number,
+        alliances: m.alliances ? {
+          red: { score: m.alliances.red.score },
+          blue: { score: m.alliances.blue.score }
+        } : null,
+        winning_alliance: m.winning_alliance,
+        score_breakdown: m.score_breakdown ? true : false // Just include if it exists to save space
+      })),
+      
+      // Team ranking data
+      ranking: teamRankingData ? {
+        rank: teamRankingData.rank,
+        matches_played: teamRankingData.matches_played,
+        sort_orders: teamRankingData.sort_orders,
+        extra_stats: teamRankingData.extra_stats,
+        wins: teamRankingData.record.wins,
+        losses: teamRankingData.record.losses,
+        ties: teamRankingData.record.ties
+      } : null
+    };
 
+    const dataHash = JSON.stringify(dataObj);
+    
     const currentHash = crypto
       .createHash('md5')
       .update(dataHash)
@@ -498,7 +543,7 @@ router.get('/api/data-check', async (req, res) => {
       timestamp: Date.now()
     });
   } catch (error) {
-    console.error('Error checking for data updates:', error);
+    console.error('Error checking for updates:', error);
     res.status(500).json({ error: 'Failed to check for updates' });
   }
 });
