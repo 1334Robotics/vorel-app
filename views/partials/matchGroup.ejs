@@ -1,0 +1,27 @@
+<div class="match-group <%= isCompletedGroup ? 'completed-group' : '' %>">
+  <div class="match-group-title"><%= groupType %> Matches</div>
+  <% 
+    // Sort matches by number for this group
+    const sortedMatches = matches.sort((a, b) => {
+      // If it's completed group, need to sort by type first
+      if (isCompletedGroup) {
+        const aType = a.label.split(' ')[0];
+        const bType = b.label.split(' ')[0];
+        if (aType !== bType) return aType.localeCompare(bType);
+      }
+      
+      // Then sort by match number
+      const aNum = parseInt(a.label.split(' ')[1]);
+      const bNum = parseInt(b.label.split(' ')[1]);
+      return aNum - bNum;
+    });
+  %>
+  
+  <% sortedMatches.forEach(match => { %>
+    <%- include('matchCard', { 
+      match, 
+      formattedTeamKey,
+      isCompletedGroup
+    }) %>
+  <% }); %>
+</div>
