@@ -93,6 +93,6 @@ Contributions are welcome! Open issues or pull requests as needed.
 
 ## Credits
 
-- Developed by [Melodydevelopment](https://github.com/Melodydevelopment)
+- Developed by [1334Robotics](https://github.com/1334Robotics)
 - Data provided by the FIRST Nexus API
 ```
