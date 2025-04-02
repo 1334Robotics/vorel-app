@@ -31,6 +31,11 @@
     resultClass = "result-tie";
     resultText = "Tie";
   }
+  
+  // Fix: Check for showRankingPoints parameter without self-reference
+  const shouldShowRankingPoints = (typeof locals !== 'undefined' && 
+                                  typeof locals.showRankingPoints !== 'undefined') ? 
+                                  locals.showRankingPoints : true;
 %>
 
 <div class="match-card" id="match-<%= match.label.replace(' ', '-') %>">
@@ -41,6 +46,14 @@
       <div class="match-status <%= statusClass %>"><%= match.status %></div>
       <% if (match.status === "Completed" && match.result) { %>
         <div class="match-result <%= resultClass %>"><%= resultText %></div>
+        
+        <!-- Only show RP in full page version when showRankingPoints is true -->
+        <% if (shouldShowRankingPoints && match.rankingPoints && match.rankingPoints.total !== undefined) { %>
+          <div class="match-rp">
+            <%= match.rankingPoints.total %> RP
+          </div>
+        <% } %>
+        
         <% if (match.score) { %>
           <div class="match-score"><%= match.score.alliance %> - <%= match.score.opposing %></div>
         <% } %>

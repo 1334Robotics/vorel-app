@@ -64,24 +64,26 @@
         </div>
       <% } else { %>
         <!-- Active/Upcoming Matches -->
-        <% Object.keys(matchGroups).forEach(groupType => { %>
-          <%- include('../partials/matchGroup', { 
-            groupType, 
-            matches: matchGroups[groupType], 
-            formattedTeamKey,
-            isCompletedGroup: false
-          }) %>
-        <% }); %>
-        
-        <!-- Completed Matches - Fixed: removed extra wrapper div -->
-        <% if (completedMatches.length > 0) { %>
-          <%- include('../partials/matchGroup', { 
-            groupType: 'Completed', 
-            matches: completedMatches, 
-            formattedTeamKey,
-            isCompletedGroup: true
-          }) %>
-        <% } %>
+<% Object.keys(matchGroups).forEach(groupType => { %>
+  <%- include('../partials/matchGroup', { 
+    groupType, 
+    matches: matchGroups[groupType], 
+    formattedTeamKey,
+    isCompletedGroup: false,
+    isEmbedded: true
+  }) %>
+<% }); %>
+
+<!-- Completed Matches - Fixed: removed extra wrapper div -->
+<% if (completedMatches.length > 0) { %>
+  <%- include('../partials/matchGroup', { 
+    groupType: 'Completed', 
+    matches: completedMatches, 
+    formattedTeamKey,
+    isCompletedGroup: true,
+    isEmbedded: true
+  }) %>
+<% } %>
       <% } %>
     </div>
     

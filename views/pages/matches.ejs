@@ -258,7 +258,8 @@
                 groupType, 
                 matches: matchGroups[groupType], 
                 formattedTeamKey,
-                isCompletedGroup: false
+                isCompletedGroup: false,
+                isEmbedded: false
               }) %>
             <% }); %>
             
@@ -268,7 +269,8 @@
                 groupType: 'Completed', 
                 matches: completedMatches, 
                 formattedTeamKey,
-                isCompletedGroup: true
+                isCompletedGroup: true,
+                isEmbedded: false
               }) %>
             <% } %>
           <% } %>
