@@ -1,98 +1,116 @@
-Collecting workspace information```md
-# FRC Matches Fetcher
+Collecting workspace information# FRC Matches Fetcher
 
-A service to fetch alliance matches of a specific team in an event using the Blue Alliance API.
+A web service that displays match schedules and results for FRC teams at events using the FIRST Nexus API and The Blue Alliance API.
+
+![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
 
 ## Features
 
-- Fetch match data from the Nexus API.
-- Display team-specific match details in a full page and an embeddable widget.
-- Auto-update match statuses and handle live data checks.
-- Dockerized for easy deployment.
+- View all matches for a specific team at an event
+- Real-time match status updates
+- Display match results and scoring details
+- Calculate and display ranking points earned
+- Responsive design suitable for mobile and desktop
+- Embeddable widget for use in other websites
 
-## Prerequisites
+## Installation
 
-- Node.js (>=12)
-- npm
+### Prerequisites
 
-## Setup
+- Node.js (v16 or newer)
+- NPM or Yarn
 
-1. Clone the repository.
-2. Install dependencies:
+### Local Setup
 
-   ```sh
-   npm install
-   ```
+1. Clone the repository
+```bash
+git clone https://github.com/1334Robotics/frc-matches-fetcher.git
+cd frc-matches-fetcher
+```
 
-3. Create a `.env` file in the root directory using the provided [`.env.example`](.env.example) as reference:
+2. Install dependencies
+```bash
+npm install
+```
 
-   ```env
-   Nexus_Api_Key=your_api_key_here
-   PORT=3002
-   ```
+3. Create a .env file based on the example
+```bash
+cp .env.example .env
+```
 
-4. Start the application:
+4. Edit the .env file and add your API keys:
+   - Get a Nexus API key from [FIRST Nexus](https://frc.nexus)
+   - Get a TBA API key from [The Blue Alliance](https://www.thebluealliance.com/account)
 
-   ```sh
-   npm start
-   ```
+## Usage
 
-## API Endpoints
+### Running locally
 
-- **GET /**  
-  Renders an HTML page where users can input team and event keys to view match data.
+```bash
+npm start
+```
 
-- **GET /api/TBA-matches/test**  
-  Returns raw event data for the provided `eventKey`.  
-  _Example:_ `/api/TBA-matches/test?eventKey=2025miket`
+The server will start on port 3002 (or the port specified in your .env file).
 
-- **GET /embed**  
-  Provides an embeddable version of the match data.  
-  _Required query parameters:_ `teamKey` and `eventKey`  
-  _Optional:_ `height` (default is 600)
+Access the application by navigating to `http://localhost:3002` in your browser.
 
-- **GET /api/health**  
-  Health check endpoint used for Docker health checks.
+### How to use
 
-- **GET /api/data-check**  
-  Checks for data updates. Expects query parameters `eventKey` and `lastUpdate`.
+1. Enter a team number (e.g., 1334 or frc1334)
+2. Enter an event key (e.g., 2025miket)
+3. View match schedule and results
 
-## Docker
+## Embedding in another website
 
-### Building and Running
+You can embed the matches display in another website using an iframe:
 
-1. Build the Docker image:
+```html
+<iframe 
+  src="http://your-server-url/embed?teamKey=1334&eventKey=2025miket&height=600" 
+  width="100%" 
+  height="600" 
+  frameborder="0">
+</iframe>
+```
 
-   ```sh
-   docker build -t frc-matches-fetcher .
-   ```
+## Docker Deployment
 
-2. Run the container:
+### Using docker-compose (recommended)
 
-   ```sh
-   docker run -d -p 3002:3002 --env NODE_ENV=production --env TBA_API_KEY=your_api_key_here frc-matches-fetcher
-   ```
+1. Create a .env file with your API keys as described above
+2. Run the service using docker-compose:
 
-Alternatively, use the provided `docker-compose.yml`:
+```bash
+docker-compose up -d
+```
 
-   ```sh
-   docker-compose up -d
-   ```
+### Using Docker directly
 
-## GitHub Actions
+```bash
+docker build -t frc-matches-fetcher .
+docker run -p 3002:3002 --env-file .env frc-matches-fetcher
+```
 
-A GitHub Actions workflow is set up in [`.github/workflows/build.yml`](.github/workflows/build.yml) to build and publish Docker images on pushes to the main branch.
+## API Documentation
+
+### Endpoints
+
+- `GET /` - Main application page
+- `GET /embed` - Embeddable version of match display
+- `GET /api/health` - Health check endpoint
+- `GET /api/data-check` - Checks if there are new updates to matches data
+
+### Query Parameters
+
+- `teamKey` - Team number (with or without "frc" prefix)
+- `eventKey` - Event key (e.g., 2025miket)
+- `height` - (Embed only) Height of the container in pixels
 
 ## License
 
-This project is licensed under the [GNU GENERAL PUBLIC LICENSE](LICENSE).
+This project is licensed under the GNU General Public License v3.0 - see the LICENSE file for details.
 
-## Contributing
+## Acknowledgments
 
-Contributions are welcome! Open issues or pull requests as needed.
-
-## Credits
-
-- Developed by [1334Robotics](https://github.com/1334Robotics)
-- Data provided by the FIRST Nexus API
-```
+- [The Blue Alliance](https://www.thebluealliance.com) for match results data
+- [FIRST Nexus](https://frc.nexus) for real-time match status updates
