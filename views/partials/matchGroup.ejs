@@ -26,7 +26,8 @@
     <%- include('matchCard', { 
       match, 
       formattedTeamKey,
-      isCompletedGroup
+      isCompletedGroup,
+      showRankingPoints: typeof isEmbedded !== 'undefined' ? !isEmbedded : true
     }) %>
   <% }); %>
 </div>
