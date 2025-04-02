@@ -21,10 +21,74 @@
     }
   }
   
+  // Find the next match card (first non-completed match)
+  function findNextMatchCard() {
+    // First check for Currently Playing matches
+    let matchGroups = document.querySelectorAll('.match-group');
+    for (const group of matchGroups) {
+      const groupTitle = group.querySelector('.match-group-title');
+      if (groupTitle && groupTitle.textContent.includes('Currently Playing')) {
+        const cards = group.querySelectorAll('.match-card');
+        if (cards.length > 0) return cards[0];
+      }
+    }
+    
+    // Then check for Next Up matches
+    for (const group of matchGroups) {
+      const groupTitle = group.querySelector('.match-group-title');
+      if (groupTitle && groupTitle.textContent.includes('Next Up')) {
+        const cards = group.querySelectorAll('.match-card');
+        if (cards.length > 0) return cards[0];
+      }
+    }
+    
+    // Finally check for any non-completed match
+    const allMatchCards = document.querySelectorAll('.match-card');
+    for (const card of allMatchCards) {
+      if (!card.closest('.match-group').querySelector('.match-group-title').textContent.includes('Completed')) {
+        return card;
+      }
+    }
+    
+    return null;
+  }
+  
+  // Auto-open the next match card
+  function openNextMatchCard() {
+    const nextMatchCard = findNextMatchCard();
+    if (nextMatchCard) {
+      console.log('Found next match card:', nextMatchCard.id);
+      nextMatchCard.classList.add('active');
+      saveOpenMatches();
+      
+      // Scroll to the next match card
+      nextMatchCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return nextMatchCard;
+    } else {
+      console.log('No next match card found');
+      return null;
+    }
+  }
+  
+  // Collapse all match cards except for the next match
+  function collapseOtherMatchCards(nextMatchCard) {
+    if (!nextMatchCard) return;
+    
+    console.log('Collapsing matches except:', nextMatchCard.id);
+    const allMatchCards = document.querySelectorAll('.match-card.active');
+    allMatchCards.forEach(card => {
+      if (card.id !== nextMatchCard.id) {
+        card.classList.remove('active');
+      }
+    });
+    saveOpenMatches();
+  }
+  
   let currentDataHash = "";
   let checkInterval = 10000; // 10 seconds interval
   let updateTimer;
   let serverTimeOffset = 0; // Store the difference between server and client time
+  let collapseTimer; // Timer for collapsing other match cards
   
   // Check if client clock is synchronized with EST
   function checkClockSync(serverTimestamp) {
@@ -113,8 +177,34 @@
     }
   }
   
+  // Initialize auto-opening functionality
+  function initializeMatchDisplay() {
+    console.log('Initializing match display behavior');
+    
+    // Clear any existing collapse timer
+    if (collapseTimer) {
+      clearTimeout(collapseTimer);
+    }
+    
+    // Automatically open the next match card
+    const nextMatchCard = openNextMatchCard();
+    
+    // Removed the auto-collapse timer to keep all cards expanded
+    // as per the user's request
+  }
+  
   document.addEventListener('DOMContentLoaded', () => {
-    restoreOpenMatches();
+    console.log('DOM fully loaded');
+    
+    // First restore any previously open matches
+    // We're not doing this anymore to ensure our auto-open logic works cleanly
+    // restoreOpenMatches();
+    
+    // Wait a short time to ensure all elements are fully rendered
+    setTimeout(() => {
+      initializeMatchDisplay();
+    }, 100);
+    
     setTimeout(checkForUpdates, 1000);
     
     // Start clock updates
