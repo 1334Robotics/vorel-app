@@ -24,6 +24,60 @@
   let currentDataHash = "";
   let checkInterval = 10000; // 10 seconds interval
   let updateTimer;
+  let serverTimeOffset = 0; // Store the difference between server and client time
+  
+  // Check if client clock is synchronized with EST
+  function checkClockSync(serverTimestamp) {
+    const clientTime = Date.now();
+    const timeDiff = Math.abs(clientTime - serverTimestamp);
+    
+    if (timeDiff > 5000) { // More than 5 seconds difference
+      console.log(`Clock desync detected: ${timeDiff}ms difference`);
+      serverTimeOffset = serverTimestamp - clientTime;
+      
+      // Add a warning to the UI
+      const updateStatus = document.getElementById('update-status');
+      if (updateStatus) {
+        updateStatus.innerHTML += ` <span style="color: #ff9800;">(Clock desync detected: ${Math.round(timeDiff/1000)}s)</span>`;
+      }
+      
+      // Update any time displays that might be on the page
+      updateSyncedClock();
+      return false;
+    }
+    return true;
+  }
+  
+  // Get the current time adjusted for any server-client difference
+  function getSyncedTime() {
+    return new Date(Date.now() + serverTimeOffset);
+  }
+  
+  // Update any clock elements on the page with the synced time
+  function updateSyncedClock() {
+    const clockTime = document.getElementById('clock-time');
+    const clockDate = document.getElementById('clock-date');
+    
+    if (clockTime && clockDate) {
+      const syncedNow = getSyncedTime();
+      
+      clockTime.textContent = syncedNow.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+        timeZone: 'Canada/Eastern'
+      });
+      
+      clockDate.textContent = syncedNow.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'Canada/Eastern'
+      });
+    }
+  }
   
   async function checkForUpdates() {
     const updateStatus = document.getElementById('update-status');
@@ -34,6 +88,12 @@
         + '&teamKey=' + encodeURIComponent('<%= formattedTeamKey %>') 
         + '&lastUpdate=' + currentDataHash);
       const data = await response.json();
+      
+      // Check clock sync using server timestamp
+      if (data.timestamp) {
+        checkClockSync(data.timestamp);
+      }
+      
       if (data.changed) {
         saveOpenMatches();
         updateStatus.innerHTML = 'New data available! Refreshing...';
@@ -41,8 +101,8 @@
       } else {
         currentDataHash = data.hash;
         const shortHash = currentDataHash.substring(0, 8);
-        const lastChecked = new Date().toLocaleTimeString();
-        updateStatus.innerHTML = 'Data provided by FIRST Nexus & TBA APIs • Last updated: ' + new Date().toLocaleString() + ' • Last checked: ' + lastChecked;
+        const lastChecked = getSyncedTime().toLocaleTimeString();
+        updateStatus.innerHTML = 'Data provided by FIRST Nexus & TBA APIs • Last updated: ' + getSyncedTime().toLocaleString() + ' • Last checked: ' + lastChecked;
         hashDisplay.innerHTML = 'Hash: ' + shortHash;
         updateTimer = setTimeout(checkForUpdates, checkInterval);
       }
@@ -56,6 +116,11 @@
   document.addEventListener('DOMContentLoaded', () => {
     restoreOpenMatches();
     setTimeout(checkForUpdates, 1000);
+    
+    // Start clock updates
+    updateSyncedClock();
+    setInterval(updateSyncedClock, 1000);
+    
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         clearTimeout(updateTimer);
