@@ -46,6 +46,12 @@
   <div class="container">
     <%- include('../partials/header', { formattedTeamKey, eventKey, nowQueuing }) %>
     
+<% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+  <div class="error-message" style="background-color: #f44336; color: white; padding: 12px; margin: 15px 0; border-radius: 4px; text-align: center;">
+    <strong>Error:</strong> <%= errorMessage %>
+  </div>
+<% } %>
+    
     <% if (teamRanking) { %>
     <div class="team-ranking-section">
       <div class="ranking-title">Team <%= formattedTeamKey %> Ranking</div>

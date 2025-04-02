@@ -238,7 +238,18 @@ router.get('/', async (req, res) => {
     
   } catch (error) {
     console.error('Error generating full page match data:', error);
-    res.status(500).json({ error: 'Failed to generate match data' });
+    // Instead of returning error JSON, render the same page with empty data and error message
+    res.render('pages/matches', {
+      teamKey: teamKey || '',
+      formattedTeamKey: teamKey ? (teamKey.startsWith('frc') ? teamKey.substring(3) : teamKey) : '',
+      eventKey: eventKey || '',
+      eventName: eventKey || 'Unknown Event',
+      matchGroups: {},
+      completedMatches: [],
+      nowQueuing: null,
+      teamRanking: null,
+      errorMessage: `Failed to generate match data: ${error.message}`
+    });
   }
 });
 
@@ -366,7 +377,19 @@ router.get('/embed', async (req, res) => {
     
   } catch (error) {
     console.error('Error generating match data:', error);
-    res.status(500).json({ error: 'Failed to generate match data' });
+    // Instead of returning error JSON, render the embed page with empty data and error message
+    res.render('pages/embed', {
+      teamKey,
+      formattedTeamKey,
+      eventKey,
+      eventName: eventKey || 'Unknown Event',
+      matchGroups: {},
+      completedMatches: [],
+      nowQueuing: null,
+      containerHeight,
+      teamRanking: null,
+      errorMessage: `Failed to generate match data: ${error.message}`
+    });
   }
 });
 
