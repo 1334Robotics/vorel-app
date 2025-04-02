@@ -8,12 +8,17 @@
         const aType = a.label.split(' ')[0];
         const bType = b.label.split(' ')[0];
         if (aType !== bType) return aType.localeCompare(bType);
+        
+        // For completed matches, reverse the sort order to show newest first
+        const aNum = parseInt(a.label.split(' ')[1]);
+        const bNum = parseInt(b.label.split(' ')[1]);
+        return bNum - aNum; // Reverse order (descending)
+      } else {
+        // For upcoming matches, keep the existing order (ascending)
+        const aNum = parseInt(a.label.split(' ')[1]);
+        const bNum = parseInt(b.label.split(' ')[1]);
+        return aNum - bNum;
       }
-      
-      // Then sort by match number
-      const aNum = parseInt(a.label.split(' ')[1]);
-      const bNum = parseInt(b.label.split(' ')[1]);
-      return aNum - bNum;
     });
   %>
   

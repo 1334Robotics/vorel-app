@@ -220,6 +220,17 @@
         position: static;
       }
     }
+
+    @keyframes blink-background {
+      0% { background-color: #252525; }
+      50% { background-color: #4a2917; }
+      100% { background-color: #252525; }
+    }
+
+    .next-match-details.queuing {
+      animation: blink-background 1.5s infinite;
+      border: 2px solid #ff9800;
+    }
   </style>
 </head>
 <body>
@@ -310,7 +321,7 @@
         
         <div class="next-match-card">
           <div class="info-title">Next Match</div>
-          <div class="next-match-details">
+          <div class="next-match-details <%= nextMatch && nextMatch.status === 'Now queuing' ? 'queuing' : '' %>">
             <% if (nextMatch) { %>
               <div class="next-match-number">
                 <span><%= nextMatch.label %></span>
