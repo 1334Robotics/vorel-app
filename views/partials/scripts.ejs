@@ -30,7 +30,9 @@
     const hashDisplay = document.getElementById('hash-display');
     try {
       updateStatus.innerHTML = 'Checking for updates...';
-      const response = await fetch('/api/data-check?eventKey=' + encodeURIComponent('<%= eventKey %>') + '&lastUpdate=' + currentDataHash);
+      const response = await fetch('/api/data-check?eventKey=' + encodeURIComponent('<%= eventKey %>') 
+        + '&teamKey=' + encodeURIComponent('<%= formattedTeamKey %>') 
+        + '&lastUpdate=' + currentDataHash);
       const data = await response.json();
       if (data.changed) {
         saveOpenMatches();
@@ -40,7 +42,7 @@
         currentDataHash = data.hash;
         const shortHash = currentDataHash.substring(0, 8);
         const lastChecked = new Date().toLocaleTimeString();
-        updateStatus.innerHTML = 'Data provided by FIRST Nexus API • Last updated: ' + new Date().toLocaleString() + ' • Last checked: ' + lastChecked;
+        updateStatus.innerHTML = 'Data provided by FIRST Nexus & TBA APIs • Last updated: ' + new Date().toLocaleString() + ' • Last checked: ' + lastChecked;
         hashDisplay.innerHTML = 'Hash: ' + shortHash;
         updateTimer = setTimeout(checkForUpdates, checkInterval);
       }
