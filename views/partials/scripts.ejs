@@ -89,6 +89,7 @@
   let updateTimer;
   let serverTimeOffset = 0; // Store the difference between server and client time
   let collapseTimer; // Timer for collapsing other match cards
+  let autoOpenedMatchId = null; // Track the automatically opened match
   
   // Check if client clock is synchronized with EST
   function checkClockSync(serverTimestamp) {
@@ -143,6 +144,48 @@
     }
   }
   
+  // Initialize auto-opening functionality
+  function initializeMatchDisplay() {
+    console.log('Initializing match display behavior');
+    
+    // Clear any existing collapse timer
+    if (collapseTimer) {
+      clearTimeout(collapseTimer);
+    }
+    
+    // Automatically open the next match card
+    const nextMatchCard = openNextMatchCard();
+    
+    // Store the ID of the automatically opened match card
+    if (nextMatchCard) {
+      autoOpenedMatchId = nextMatchCard.id;
+      console.log('Auto-opened match ID:', autoOpenedMatchId);
+    }
+  }
+  
+  // Check if a match is completed
+  function isMatchCompleted(matchId) {
+    const card = document.getElementById(matchId);
+    if (!card) return false;
+    
+    // Check if the match card is in a completed group
+    const group = card.closest('.match-group');
+    if (!group) return false;
+    
+    const groupTitle = group.querySelector('.match-group-title');
+    return groupTitle && groupTitle.textContent.includes('Completed');
+  }
+  
+  // Close a match card
+  function closeMatchCard(matchId) {
+    const card = document.getElementById(matchId);
+    if (card && card.classList.contains('active')) {
+      console.log('Closing completed match card:', matchId);
+      card.classList.remove('active');
+      saveOpenMatches();
+    }
+  }
+  
   async function checkForUpdates() {
     const updateStatus = document.getElementById('update-status');
     const hashDisplay = document.getElementById('hash-display');
@@ -163,6 +206,18 @@
         updateStatus.innerHTML = 'New data available! Refreshing...';
         setTimeout(() => window.location.reload(), 500);
       } else {
+        // Check if the auto-opened match is now completed
+        if (autoOpenedMatchId && isMatchCompleted(autoOpenedMatchId)) {
+          closeMatchCard(autoOpenedMatchId);
+          autoOpenedMatchId = null; // Reset after closing
+          
+          // Automatically open the next match card
+          const nextMatchCard = openNextMatchCard();
+          if (nextMatchCard) {
+            autoOpenedMatchId = nextMatchCard.id;
+          }
+        }
+        
         currentDataHash = data.hash;
         const shortHash = currentDataHash.substring(0, 8);
         const lastChecked = getSyncedTime().toLocaleTimeString();
@@ -175,22 +230,6 @@
       updateStatus.innerHTML = 'Update check failed. Retrying soon...';
       updateTimer = setTimeout(checkForUpdates, checkInterval * 2);
     }
-  }
-  
-  // Initialize auto-opening functionality
-  function initializeMatchDisplay() {
-    console.log('Initializing match display behavior');
-    
-    // Clear any existing collapse timer
-    if (collapseTimer) {
-      clearTimeout(collapseTimer);
-    }
-    
-    // Automatically open the next match card
-    const nextMatchCard = openNextMatchCard();
-    
-    // Removed the auto-collapse timer to keep all cards expanded
-    // as per the user's request
   }
   
   document.addEventListener('DOMContentLoaded', () => {
