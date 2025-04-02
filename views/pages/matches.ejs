@@ -203,16 +203,16 @@
               <div class="stat-label">Rank</div>
             </div>
             <div class="stat-card">
-              <div class="stat-value"><%= teamRanking.totalRP.toFixed(2) %></div>
-              <div class="stat-label">Total RP</div>
-            </div>
-            <div class="stat-card">
               <div class="stat-value"><%= teamRanking.record %></div>
               <div class="stat-label">Record (W-L-T)</div>
             </div>
             <div class="stat-card">
+              <div class="stat-value"><%= teamRanking.matchesPlayed || "N/A" %></div>
+              <div class="stat-label">Matches Played</div>
+            </div>
+            <div class="stat-card">
               <div class="stat-value"><%= teamRanking.matches %></div>
-              <div class="stat-label">Teams</div>
+              <div class="stat-label">Total Teams</div>
             </div>
           </div>
         </div>
