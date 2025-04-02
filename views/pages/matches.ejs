@@ -5,10 +5,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Team <%= formattedTeamKey %> Matches</title>
   <%- include('../partials/styles') %>
+  <style>
+    .team-ranking-section {
+      background-color: #1d1d1d;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .ranking-title {
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #4fc3f7;
+      margin-bottom: 10px;
+    }
+    .ranking-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+    }
+    .stat-card {
+      background-color: #252525;
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 1.8em;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #e0e0e0;
+    }
+    .stat-label {
+      font-size: 0.9em;
+      color: #aaa;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <%- include('../partials/header', { formattedTeamKey, eventKey, nowQueuing }) %>
+    
+    <% if (teamRanking) { %>
+    <div class="team-ranking-section">
+      <div class="ranking-title">Team <%= formattedTeamKey %> Ranking</div>
+      <div class="ranking-stats">
+        <div class="stat-card">
+          <div class="stat-value">#<%= teamRanking.rank %></div>
+          <div class="stat-label">Rank</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value"><%= teamRanking.totalRP.toFixed(2) %></div>
+          <div class="stat-label">Total RP</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value"><%= teamRanking.record %></div>
+          <div class="stat-label">Record (W-L-T)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value"><%= teamRanking.matches %></div>
+          <div class="stat-label">Teams</div>
+        </div>
+      </div>
+    </div>
+    <% } %>
     
     <div class="content">
       <% if (Object.keys(matchGroups).length === 0 && completedMatches.length === 0) { %>

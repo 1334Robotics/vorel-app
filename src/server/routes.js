@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { fetchEventDetails, fetchTeamStatusAtEvent, fetchEventMatchResults } = require('./api');
+const { fetchEventDetails, fetchTeamStatusAtEvent, fetchEventMatchResults, fetchTBAEventDetails } = require('./api');
 const crypto = require('crypto');
 
 // GET /api/TBA-matches/test - Returns raw event data
@@ -142,6 +142,37 @@ router.get('/', async (req, res) => {
       return res.status(404).json({ error: 'Event not found' });
     }
     
+    // Fetch event name from TBA
+    let eventName = eventKey; // Default to eventKey if TBA fetch fails
+    try {
+      const tbaEventDetails = await fetchTBAEventDetails(eventKey);
+      if (tbaEventDetails && tbaEventDetails.name) {
+        eventName = tbaEventDetails.name;
+      }
+    } catch (error) {
+      console.error('Error fetching event name from TBA:', error);
+    }
+    
+    // Fetch team ranking data from TBA
+    const formattedTBATeamKey = `frc${formattedTeamKey}`;
+    const teamStatus = await fetchTeamStatusAtEvent(formattedTBATeamKey, eventKey);
+    
+    // Extract ranking information
+    let teamRanking = null;
+    let totalRankingPoints = 0;
+    
+    if (teamStatus && teamStatus.qual && teamStatus.qual.ranking) {
+      teamRanking = {
+        rank: teamStatus.qual.ranking.rank,
+        totalRP: teamStatus.qual.ranking.sort_orders[0], // First sort order is usually total RP
+        matches: teamStatus.qual.num_teams,
+        record: `${teamStatus.qual.ranking.record.wins}-${teamStatus.qual.ranking.record.losses}-${teamStatus.qual.ranking.record.ties}`
+      };
+      
+      totalRankingPoints = teamStatus.qual.ranking.sort_orders[0];
+    }
+    
+    // Rest of the existing code
     let matches = [...eventData.matches]; // Create a copy we can modify
     const nowQueuing = eventData.nowQueuing;
     
@@ -193,14 +224,16 @@ router.get('/', async (req, res) => {
       }
     });
     
-    // Render the matches page with the match data
+    // Render the matches page with the match data and ranking info
     res.render('pages/matches', {
       teamKey,
       formattedTeamKey,
       eventKey,
+      eventName,
       matchGroups,
       completedMatches,
-      nowQueuing
+      nowQueuing,
+      teamRanking
     });
     
   } catch (error) {
@@ -232,6 +265,36 @@ router.get('/embed', async (req, res) => {
     const eventData = await fetchEventDetails(eventKey);
     if (!eventData) {
       return res.status(404).json({ error: 'Event not found' });
+    }
+    
+    // Fetch event name from TBA
+    let eventName = eventKey; // Default to eventKey if TBA fetch fails
+    try {
+      const tbaEventDetails = await fetchTBAEventDetails(eventKey);
+      if (tbaEventDetails && tbaEventDetails.name) {
+        eventName = tbaEventDetails.name;
+      }
+    } catch (error) {
+      console.error('Error fetching event name from TBA:', error);
+    }
+    
+    // Fetch team ranking data from TBA
+    const formattedTBATeamKey = `frc${formattedTeamKey}`;
+    const teamStatus = await fetchTeamStatusAtEvent(formattedTBATeamKey, eventKey);
+    
+    // Extract ranking information
+    let teamRanking = null;
+    let totalRankingPoints = 0;
+    
+    if (teamStatus && teamStatus.qual && teamStatus.qual.ranking) {
+      teamRanking = {
+        rank: teamStatus.qual.ranking.rank,
+        totalRP: teamStatus.qual.ranking.sort_orders[0], // First sort order is usually total RP
+        matches: teamStatus.qual.num_teams,
+        record: `${teamStatus.qual.ranking.record.wins}-${teamStatus.qual.ranking.record.losses}-${teamStatus.qual.ranking.record.ties}`
+      };
+      
+      totalRankingPoints = teamStatus.qual.ranking.sort_orders[0];
     }
     
     // Use these variables from the fetched data
@@ -288,15 +351,17 @@ router.get('/embed', async (req, res) => {
       }
     });
     
-    // Render the embed page with the match data
+    // Render the embed page with the match data and ranking info
     res.render('pages/embed', {
       teamKey,
       formattedTeamKey,
       eventKey,
+      eventName,
       matchGroups,
       completedMatches,
       nowQueuing,
-      containerHeight
+      containerHeight,
+      teamRanking
     });
     
   } catch (error) {

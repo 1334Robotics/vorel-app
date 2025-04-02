@@ -49,8 +49,22 @@ async function fetchEventMatchResults(eventKey) {
   return response.data;
 }
 
+// Add this new function to fetch event name from TBA
+async function fetchTBAEventDetails(eventKey) {
+  const url = `${TBA_BASE_URL}/event/${eventKey}`;
+  
+  const response = await axios.get(url, {
+    headers: {
+      'X-TBA-Auth-Key': TBA_API_Key
+    }
+  });
+  
+  return response.data;
+}
+
 module.exports = {
   fetchEventDetails,
   fetchTeamStatusAtEvent,
-  fetchEventMatchResults
+  fetchEventMatchResults,
+  fetchTBAEventDetails
 };
