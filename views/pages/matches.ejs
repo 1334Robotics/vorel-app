@@ -16,6 +16,7 @@
     .matches-column {
       flex: 1;
       min-width: 0;
+      max-width: 800px; /* Limit maximum width */
     }
     
     .info-column {
@@ -231,6 +232,16 @@
       animation: blink-background 1.5s infinite;
       border: 2px solid #ff9800;
     }
+
+    /* Update the style for estimated time */
+    .next-match-estimated {
+      font-size: 1em;
+      font-weight: bold; /* Changed from 500 to bold */
+      color: #4caf50; /* Green color */
+      text-align: center;
+      margin-top: 8px; /* Increased spacing from 5px to 8px */
+      margin-bottom: 8px; /* Added bottom spacing */
+    }
   </style>
 </head>
 <body>
@@ -343,6 +354,18 @@
                 %>
                 <%= timeDisplay %>
               </div>
+
+              <% if (nextMatch.times.estimatedStartTime) { %>
+                <div class="next-match-estimated">
+                  Est: <%= new Date(nextMatch.times.estimatedStartTime).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true,
+                    timeZone: 'Canada/Eastern'
+                  }) %>
+                </div>
+              <% } %>
+
               <div class="alliance-indicator <%= nextMatchAlliance %>">
                 <div class="alliance-dot <%= nextMatchAlliance %>-alliance"></div>
                 <%= nextMatchAlliance.charAt(0).toUpperCase() + nextMatchAlliance.slice(1) %> Alliance
