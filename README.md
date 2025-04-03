@@ -1,4 +1,4 @@
-Collecting workspace information# FRC Matches Fetcher
+# FRC Matches Fetcher
 
 A web service that displays match schedules and results for FRC teams at events using the FIRST Nexus API and The Blue Alliance API.
 
