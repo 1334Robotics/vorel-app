@@ -74,9 +74,6 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
           // Only calculate ranking points for qualification matches
           if (isQualificationMatch && tbaMatch.score_breakdown) {
             const rpBreakdown = tbaMatch.score_breakdown[allianceColor];
-            
-            // Debug log to see the structure of rpBreakdown
-            console.log('RP Breakdown for match', match.label, ':', JSON.stringify(rpBreakdown, null, 2));
 
             if (rpBreakdown) {
               match.rankingPoints = {
@@ -85,17 +82,7 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
               };
 
               // For 2025, try multiple possible field names for auto RP
-              if (rpBreakdown.autoRankingPoints !== undefined) {
-                if (rpBreakdown.autoRankingPoints > 0) {
-                  match.rankingPoints.breakdown.push('Auto RP');
-                  match.rankingPoints.total += rpBreakdown.autoRankingPoints;
-                }
-              } else if (rpBreakdown.autoRP !== undefined) {
-                if (rpBreakdown.autoRP > 0) {
-                  match.rankingPoints.breakdown.push('Auto RP');
-                  match.rankingPoints.total += rpBreakdown.autoRP;
-                }
-              } else if (rpBreakdown.autoPoints !== undefined && rpBreakdown.autoPoints >= 3) {
+              if (rpBreakdown.autoPoints !== undefined && rpBreakdown.autoPoints >= 3) {
                 // Arbitrary threshold based on game rules
                 match.rankingPoints.breakdown.push('Auto RP');
                 match.rankingPoints.total += 1;
@@ -119,20 +106,11 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
               }
 
               // Try multiple possible field names for coral RP
-              if (rpBreakdown.coralRankingPoints !== undefined) {
-                if (rpBreakdown.coralRankingPoints > 0) {
+              if (rpBreakdown.coralBonusAchieved !== undefined) {
+                if (rpBreakdown.coralBonusAchieved) {
                   match.rankingPoints.breakdown.push('Coral RP');
-                  match.rankingPoints.total += rpBreakdown.coralRankingPoints;
+                  match.rankingPoints.total += 1;
                 }
-              } else if (rpBreakdown.coralRP !== undefined) {
-                if (rpBreakdown.coralRP > 0) {
-                  match.rankingPoints.breakdown.push('Coral RP');
-                  match.rankingPoints.total += rpBreakdown.coralRP;
-                }
-              } else if (rpBreakdown.coralPoints !== undefined && rpBreakdown.coralPoints >= 5) {
-                // Arbitrary threshold based on game rules
-                match.rankingPoints.breakdown.push('Coral RP');
-                match.rankingPoints.total += 1;
               }
 
               // Coopertition bonus - try multiple possible field names
