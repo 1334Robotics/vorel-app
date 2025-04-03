@@ -112,14 +112,6 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
                   match.rankingPoints.total += 1;
                 }
               }
-
-              // Coopertition bonus - try multiple possible field names
-              if (rpBreakdown.coopertitionBonus || 
-                  rpBreakdown.coopertitionRankingPoint || 
-                  rpBreakdown.coopertitionRP) {
-                match.rankingPoints.breakdown.push('Coopertition RP');
-                match.rankingPoints.total += 1;
-              }
             }
           }
         }
@@ -508,7 +500,7 @@ router.get('/api/data-check', async (req, res) => {
         status: m.status.trim()
       })).sort((a, b) => a.id.localeCompare(b.id)),
       
-      // TBA data
+      // TBA data with more complete match details
       tbaMatches: tbaMatchData.map(m => ({
         key: m.key,
         comp_level: m.comp_level,
@@ -518,7 +510,11 @@ router.get('/api/data-check', async (req, res) => {
           blue: { score: m.alliances.blue.score }
         } : null,
         winning_alliance: m.winning_alliance,
-        score_breakdown: m.score_breakdown ? true : false // Just include if it exists to save space
+        // Include actual score breakdown data for RP calculations
+        score_breakdown: m.score_breakdown ? {
+          red: extractRPRelevantData(m.score_breakdown.red),
+          blue: extractRPRelevantData(m.score_breakdown.blue)
+        } : null
       })),
       
       // Team ranking data
@@ -557,5 +553,19 @@ router.get('/api/data-check', async (req, res) => {
     res.status(500).json({ error: 'Failed to check for updates' });
   }
 });
+
+// Helper function to extract only the RP-relevant data from score breakdown
+function extractRPRelevantData(breakdown) {
+  if (!breakdown) return null;
+  
+  return {
+    // Extract only the fields used for RP calculations
+    autoPoints: breakdown.autoPoints,
+    endGameBargePoints: breakdown.endGameBargePoints,
+    endgameRankingPoint: breakdown.endgameRankingPoint,
+    bargeRankingPoint: breakdown.bargeRankingPoint,
+    coralBonusAchieved: breakdown.coralBonusAchieved
+  };
+}
 
 module.exports = router;
