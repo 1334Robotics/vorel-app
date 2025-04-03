@@ -185,8 +185,50 @@ router.get('/', async (req, res) => {
         totalRP = teamStatus.qual.ranking.sort_orders[0] || 0;
       }
       
-      // Get matches played
-      const matchesPlayed = teamStatus.qual.ranking.matches_played || 0;
+      // Get matches played from TBA (fallback)
+      const tbaMatchesPlayed = teamStatus.qual.ranking.matches_played || 0;
+      
+      // Rest of the existing code
+      let matches = [...eventData.matches]; // Create a copy we can modify
+      const nowQueuing = eventData.nowQueuing;
+      
+      // Sort matches by their sequence (match type then number)
+      matches.sort((a, b) => {
+        const aType = a.label.split(' ')[0];
+        const bType = b.label.split(' ')[0];
+        
+        if (aType !== bType) return aType.localeCompare(bType);
+        
+        const aNum = parseInt(a.label.split(' ')[1]);
+        const bNum = parseInt(b.label.split(' ')[1]);
+        return aNum - bNum;
+      });
+      
+      // Auto-complete logic: mark earlier "On field" match as "Completed" if a later one is "On field"
+      for (let i = 0; i < matches.length - 1; i++) {
+        if (matches[i].status === "On field") {
+          for (let j = i + 1; j < matches.length; j++) {
+            if (matches[j].status === "On field") {
+              matches[i].status = "Completed";
+              break;
+            }
+          }
+        }
+      }
+      
+      // Filter matches for the requested team
+      const teamMatches = matches.filter(match => 
+        Array.isArray(match.redTeams) && match.redTeams.includes(formattedTeamKey) || 
+        Array.isArray(match.blueTeams) && match.blueTeams.includes(formattedTeamKey)
+      );
+      
+      // Count all completed matches for the team from Nexus data (including non-qualification matches)
+      const completedMatches = teamMatches.filter(match => 
+        match.status === "Completed"
+      ).length;
+      
+      // Use Nexus data for matches played count if available, otherwise fall back to TBA
+      const matchesPlayed = completedMatches > 0 ? completedMatches : tbaMatchesPlayed;
       
       teamRanking = {
         rank: teamStatus.qual.ranking.rank,
