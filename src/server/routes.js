@@ -131,6 +131,19 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
   }
 }
 
+// Add this function after processMatchDataWithTBAResults
+function calculateRecordFromCompletedMatches(completedMatches) {
+  let wins = 0, losses = 0, ties = 0;
+  
+  completedMatches.forEach(match => {
+    if (match.result === 'win') wins++;
+    else if (match.result === 'loss') losses++;
+    else if (match.result === 'tie') ties++;
+  });
+  
+  return { wins, losses, ties };
+}
+
 // GET / - Full page version with TBA data
 router.get('/', async (req, res) => {
   const { teamKey, eventKey } = req.query;
@@ -290,6 +303,15 @@ router.get('/', async (req, res) => {
         matchGroups[matchType].push(match);
       }
     });
+
+    // Calculate record from completed matches
+    const nexusRecord = calculateRecordFromCompletedMatches(completedMatches);
+    const nexusRecordString = `${nexusRecord.wins}-${nexusRecord.losses}-${nexusRecord.ties}`;
+
+    // Use Nexus record instead of TBA record
+    if (teamRanking) {
+      teamRanking.record = nexusRecordString;
+    }
     
     // Render the matches page with the match data and ranking info
     res.render('pages/matches', {
