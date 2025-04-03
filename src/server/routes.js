@@ -112,6 +112,12 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
                   match.rankingPoints.total += 1;
                 }
               }
+
+              // Coopertition bonus - try multiple possible field names
+              if (rpBreakdown.coopertitionBonus) {
+                match.rankingPoints.breakdown.push('Coopertition RP');
+                match.rankingPoints.total += 1;
+              }
             }
           }
         }
@@ -564,7 +570,10 @@ function extractRPRelevantData(breakdown) {
     endGameBargePoints: breakdown.endGameBargePoints,
     endgameRankingPoint: breakdown.endgameRankingPoint,
     bargeRankingPoint: breakdown.bargeRankingPoint,
-    coralBonusAchieved: breakdown.coralBonusAchieved
+    coralBonusAchieved: breakdown.coralBonusAchieved,
+    coopertitionBonus: breakdown.coopertitionBonus,
+    coopertitionRankingPoint: breakdown.coopertitionRankingPoint,
+    coopertitionRP: breakdown.coopertitionRP
   };
 }
 
