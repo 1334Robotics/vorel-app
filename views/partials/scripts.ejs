@@ -255,4 +255,73 @@
       }
     });
   });
+  
+  // Format all timestamps to local timezone
+  function formatAllTimestamps() {
+    // Format match header times
+    document.querySelectorAll('.match-time[data-timestamp]').forEach(el => {
+      const timestamp = el.getAttribute('data-timestamp');
+      if (timestamp && timestamp !== "null" && timestamp !== "undefined" && timestamp !== "") {
+        try {
+          const date = new Date(timestamp);
+          if (!isNaN(date.getTime())) { // Check if date is valid
+            el.textContent = date.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            });
+          }
+        } catch (e) {
+          // Keep existing content if date parsing fails
+        }
+      }
+    });
+    
+    // Format detailed time displays
+    document.querySelectorAll('.formatted-time[data-timestamp]').forEach(el => {
+      const timestamp = el.getAttribute('data-timestamp');
+      if (timestamp && timestamp !== "null") {
+        const date = new Date(timestamp);
+        el.textContent = date.toLocaleString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+    });
+    
+    // Format next match times in the sidebar
+    const nextMatchTimeEl = document.querySelector('.next-match-time');
+    const nextMatchEstimatedEl = document.querySelector('.next-match-estimated');
+    
+    if (nextMatchTimeEl && nextMatchTimeEl.hasAttribute('data-timestamp')) {
+      const timestamp = nextMatchTimeEl.getAttribute('data-timestamp');
+      if (timestamp && timestamp !== "null") {
+        const date = new Date(timestamp);
+        nextMatchTimeEl.textContent = date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+    }
+    
+    if (nextMatchEstimatedEl && nextMatchEstimatedEl.hasAttribute('data-timestamp')) {
+      const timestamp = nextMatchEstimatedEl.getAttribute('data-timestamp');
+      if (timestamp && timestamp !== "null") {
+        const date = new Date(timestamp);
+        // Keep the "Est: " prefix
+        nextMatchEstimatedEl.textContent = "Est: " + date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+    }
+  }
+  
+  // Call when DOM is loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    formatAllTimestamps();
+  });
 </script>
