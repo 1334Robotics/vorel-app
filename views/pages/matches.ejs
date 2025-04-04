@@ -665,7 +665,7 @@
     <button class="qr-code-close" onclick="dismissQRCode()">&times;</button>
     <div class="qr-code-title">Scan to open on mobile</div>
     <div id="qr-code" class="qr-code-canvas"></div>
-    <div class="qr-code-info">Access this page on your phone</div>
+    <div class="qr-code-info">Want this for your team? Scan the QR code</div>
   </div>
 
   <%- include('../partials/scripts', { eventKey }) %>
@@ -721,12 +721,12 @@
     });
 
     function generateQRCode() {
-      // Get current URL
-      const currentURL = window.location.href;
+      // Change to home page URL instead of current URL
+      const homeURL = window.location.origin; // This will get the base URL (e.g., http://localhost:3002)
       
       // Generate QR code
       const qr = qrcode(0, 'L');
-      qr.addData(currentURL);
+      qr.addData(homeURL);
       qr.make();
       
       // Display QR code
