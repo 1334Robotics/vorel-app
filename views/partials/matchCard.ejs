@@ -35,6 +35,10 @@
   const shouldShowRankingPoints = (typeof locals !== 'undefined' && 
                                   typeof locals.showRankingPoints !== 'undefined') ? 
                                   locals.showRankingPoints : true;
+
+  // Store raw timestamp instead of formatted string
+  const rawScheduledTime = match.times.scheduledStartTime;
+  const rawEstimatedTime = match.times.estimatedStartTime;
 %>
 
 <div class="match-card" id="match-<%= match.label.replace(' ', '-') %>">
@@ -58,7 +62,7 @@
         <% } %>
       <% } %>
     </div>
-    <div class="match-time"><%= timeDisplay %></div>
+    <div class="match-time" data-timestamp="<%= rawScheduledTime %>"><%= timeDisplay %></div>
   </div>
   <div class="match-content">
     <div class="match-details">
@@ -113,17 +117,13 @@
       
       <div class="time-section">
         <div class="time-label">Match Times</div>
-        <div class="time-row">Scheduled: <%= new Date(match.times.scheduledStartTime).toLocaleString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        }) %></div>
+        <div class="time-row">
+          Scheduled: <span class="formatted-time" data-timestamp="<%= rawScheduledTime %>"><%= new Date(match.times.scheduledStartTime).toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) %></span>
+        </div>
         <% if (match.times.estimatedStartTime) { %>
-          <div class="time-row">Estimated: <%= new Date(match.times.estimatedStartTime).toLocaleString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-          }) %></div>
+          <div class="time-row">
+            Estimated: <span class="formatted-time" data-timestamp="<%= rawEstimatedTime %>"><%= new Date(match.times.estimatedStartTime).toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) %></span>
+          </div>
         <% } %>
       </div>
       <% if (match.breakAfter) { %>
