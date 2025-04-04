@@ -25,6 +25,11 @@ app.get('/favicon.ico', (req, res) => {
 // Mount API routes at the root path
 app.use('/', apiRoutes);
 
+// Add 404 handler for all unmatched routes
+app.use((req, res) => {
+  res.status(404).render('pages/404');
+});
+
 const PORT = process.env.PORT || 3002;
 
 app.listen(PORT, () => {
