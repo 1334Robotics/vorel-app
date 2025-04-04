@@ -146,7 +146,8 @@ function calculateRecordFromCompletedMatches(completedMatches) {
 
 // GET / - Full page version with TBA data
 router.get('/', async (req, res) => {
-  const { teamKey, eventKey } = req.query;
+  const { teamKey, eventKey: rawEventKey } = req.query;
+  const eventKey = rawEventKey ? rawEventKey.toLowerCase() : rawEventKey;
   
   // If teamKey or eventKey are not provided, render an input form
   if (!teamKey || !eventKey) {
@@ -344,7 +345,8 @@ router.get('/', async (req, res) => {
 
 // GET /embed - Embeddable version of team match display
 router.get('/embed', async (req, res) => {
-  const { teamKey, eventKey, height = '600' } = req.query;
+  const { teamKey, eventKey: rawEventKey, height = '600' } = req.query;
+  const eventKey = rawEventKey ? rawEventKey.toLowerCase() : rawEventKey;
   
   if (!teamKey) {
     return res.status(400).json({ error: 'Missing teamKey parameter' });
@@ -509,7 +511,8 @@ router.get('/api/health', (req, res) => {
 
 // Add a data-check endpoint to detect changes
 router.get('/api/data-check', async (req, res) => {
-  let { eventKey, teamKey, lastUpdate } = req.query;
+  let { eventKey: rawEventKey, teamKey, lastUpdate } = req.query;
+  const eventKey = rawEventKey ? rawEventKey.toLowerCase() : rawEventKey;
 
   try {
     // Fetch Nexus data
@@ -640,5 +643,6 @@ function extractRPRelevantData(breakdown) {
     coopertitionRP: breakdown.coopertitionRP
   };
 }
+
 
 module.exports = router;
