@@ -7,6 +7,15 @@
   <%- include('../partials/styles') %>
   <style>
     /* Embed-specific styles */
+    body {
+      font-family: 'Roboto', 'Segoe UI', sans-serif;
+      background-color: #0a0a0a;
+      color: #e0e0e0;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    
     .container {
       width: 100%;
       margin: 0 auto;
@@ -21,6 +30,69 @@
       left: 0;
       right: 0;
       bottom: 0;
+    }
+    
+    .header {
+      background-color: #1d1d1d;
+      padding: 15px 0;
+      width: 100%;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 10;
+      margin-bottom: 0;
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.1em;
+      color: #e0e0e0;
+      border-radius: 0;
+    }
+    
+    .event-info {
+      background-color: #252525;
+      padding: 10px 15px;
+      border-radius: 0 0 6px 6px;
+      margin-top: 0;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      scrollbar-width: thin;
+      scrollbar-color: #444 #1a1a1a;
+    }
+    
+    .match-card {
+      background-color: #1d1d1d;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .match-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      cursor: pointer;
+    }
+    
+    .no-matches {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      text-align: center;
+      color: #888;
+      font-size: 1.1em;
     }
     
     @media (max-width: 600px) {
@@ -38,18 +110,54 @@
         margin-top: 5px;
         align-self: flex-end;
       }
+      
+      .header, .event-info {
+        padding: 10px;
+      }
+      
+      .event-info {
+        flex-direction: column;
+        gap: 5px;
+      }
+    }
+
+    /* Error message styling */
+    .error-message {
+      background-color: #f44336;
+      color: white; 
+      padding: 12px; 
+      margin: 15px 0; 
+      border-radius: 4px; 
+      text-align: center;
+    }
+
+    /* Footer styling */
+    .footer {
+      font-size: 0.8em;
+      color: #777;
+      text-align: center;
+      padding: 10px;
+      background-color: #1a1a1a;
+      border-top: 1px solid #333;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <%- include('../partials/header', { formattedTeamKey, eventKey, nowQueuing }) %>
+    <div class="header">
+      Team <%= formattedTeamKey %> Matches at <%= eventName %>
+    </div>
     
-<% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
-  <div class="error-message" style="background-color: #f44336; color: white; padding: 12px; margin: 15px 0; border-radius: 4px; text-align: center;">
-    <strong>Error:</strong> <%= errorMessage %>
-  </div>
-<% } %>
+    <div class="event-info">
+      <span>Event: <%= eventName %> (<%= eventKey %>)</span>
+      <span class="now-queuing">Now Queuing: <%= nowQueuing || 'N/A' %></span>
+    </div>
+    
+    <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+      <div class="error-message">
+        <strong>Error:</strong> <%= errorMessage %>
+      </div>
+    <% } %>
 
     <div class="content">
       <% if (Object.keys(matchGroups).length === 0 && completedMatches.length === 0) { %>
@@ -64,26 +172,26 @@
         </div>
       <% } else { %>
         <!-- Active/Upcoming Matches -->
-<% Object.keys(matchGroups).forEach(groupType => { %>
-  <%- include('../partials/matchGroup', { 
-    groupType, 
-    matches: matchGroups[groupType], 
-    formattedTeamKey,
-    isCompletedGroup: false,
-    isEmbedded: true
-  }) %>
-<% }); %>
+        <% Object.keys(matchGroups).forEach(groupType => { %>
+          <%- include('../partials/matchGroup', { 
+            groupType, 
+            matches: matchGroups[groupType], 
+            formattedTeamKey,
+            isCompletedGroup: false,
+            isEmbedded: true
+          }) %>
+        <% }); %>
 
-<!-- Completed Matches - Fixed: removed extra wrapper div -->
-<% if (completedMatches.length > 0) { %>
-  <%- include('../partials/matchGroup', { 
-    groupType: 'Completed', 
-    matches: completedMatches, 
-    formattedTeamKey,
-    isCompletedGroup: true,
-    isEmbedded: true
-  }) %>
-<% } %>
+        <!-- Completed Matches -->
+        <% if (completedMatches.length > 0) { %>
+          <%- include('../partials/matchGroup', { 
+            groupType: 'Completed', 
+            matches: completedMatches, 
+            formattedTeamKey,
+            isCompletedGroup: true,
+            isEmbedded: true
+          }) %>
+        <% } %>
       <% } %>
     </div>
     

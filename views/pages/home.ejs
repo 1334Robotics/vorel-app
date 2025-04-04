@@ -3,85 +3,318 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vorel.app - Enter Team and Event Keys</title>
+  <title>Vorel - FRC Match Scheduler & Results Tracker</title>
   <%- include('../partials/styles') %>
   <style>
+    .header {
+      background-color: #1d1d1d;
+      padding: 25px 0;
+      width: 100%;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 10;
+    }
+    
+    .header-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      text-align: center;
+    }
+    
+    .header-logo {
+      height: auto;
+      max-height: 90px;
+      max-width: 90%;
+      margin-bottom: 15px;
+      border-radius: 4px;
+    }
+    
+    .header-subtitle {
+      color: #4fc3f7;
+      font-size: 1.3em;
+      font-weight: 500;
+    }
+    
+    .app-description {
+      background-color: #1d1d1d;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 25px 0;
+      line-height: 1.5;
+      color: #e0e0e0;
+    }
+    
     .form-container {
       background-color: #1d1d1d;
       border-radius: 8px;
-      padding: 25px;
+      padding: 30px;
       margin: 20px 0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
     }
+    
     .form-title {
       color: #4fc3f7;
-      font-size: 1.3em;
-      margin-bottom: 20px;
+      font-size: 1.4em;
+      margin-bottom: 25px;
       text-align: center;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+    
+    .form-title svg {
+      margin-right: 10px;
+    }
+    
+    .form-row {
+      margin-bottom: 20px;
+    }
+    
     label {
       display: block;
-      margin-top: 15px;
-      margin-bottom: 5px;
+      margin-bottom: 8px;
       color: #e0e0e0;
+      font-weight: 500;
     }
+    
+    .input-hint {
+      display: block;
+      font-size: 0.8em;
+      color: #aaa;
+      margin-top: 5px;
+    }
+    
     input[type="text"] {
       width: 100%;
-      padding: 10px;
+      padding: 12px 15px;
       background-color: #333;
       border: 1px solid #444;
-      border-radius: 4px;
+      border-radius: 6px;
       color: #e0e0e0;
-      font-size: 1em;
-      margin-bottom: 10px;
+      font-size: 1.1em;
+      margin-bottom: 5px;
       box-sizing: border-box;
+      transition: border-color 0.3s, box-shadow 0.3s;
     }
+    
+    input[type="text"]:focus {
+      border-color: #4fc3f7;
+      box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.2);
+      outline: none;
+    }
+    
     input[type="text"]::placeholder {
       color: #888;
     }
+    
     button {
-      margin-top: 20px;
-      padding: 12px 20px;
-      font-size: 1em;
+      margin-top: 25px;
+      padding: 14px 20px;
+      font-size: 1.1em;
       background: linear-gradient(135deg, #8B0000, #660000);
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       cursor: pointer;
       width: 100%;
       font-weight: bold;
       transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+    
     button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      background: linear-gradient(135deg, #A00000, #770000);
+    }
+    
+    button svg {
+      margin-right: 8px;
+    }
+    
+    .features-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 10px;
+    }
+    
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      background-color: #252525;
+      padding: 12px 15px;
+      border-radius: 6px;
+      flex: 1 1 calc(50% - 15px);
+      min-width: 250px;
+    }
+    
+    .feature-item svg {
+      margin-right: 10px;
+      flex-shrink: 0;
+      color: #4fc3f7;
+    }
+    
+    .feature-text {
+      font-size: 0.9em;
+    }
+    
+    .footer {
+      background-color: #1d1d1d;
+      padding: 25px 0;
+      width: 100%;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+      margin-top: 40px;
+    }
+    
+    .footer-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      text-align: center;
+    }
+    
+    .footer-logo {
+      height: auto;
+      max-height: 70px;
+      max-width: 90%;
+      margin-bottom: 15px;
+      border-radius: 4px;
+    }
+    
+    .footer-subtitle {
+      color: #4fc3f7;
+      font-size: 1.1em;
+      font-weight: 500;
+      margin-bottom: 15px;
+    }
+    
+    .footer-info {
+      color: #e0e0e0;
+      font-size: 0.9em;
+      margin-top: 10px;
+    }
+    
+    .footer-copyright {
+      color: #aaa;
+      font-size: 0.8em;
+      margin-top: 5px;
+    }
+    
+    @media (max-width: 768px) {
+      .feature-item {
+        flex: 1 1 100%;
+      }
+      
+      .header-content, .footer-content {
+        padding: 10px 20px;
+      }
+      
+      .header-logo, .footer-logo {
+        max-height: 70px;
+      }
+      
+      .header-subtitle, .footer-subtitle {
+        font-size: 1.1em;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      Vorel App (an FRC match fetcher)
+  <div class="header">
+    <div class="header-content">
+      <img src="/banner.png" alt="Vorel App Banner" class="header-logo" />
+      <div class="header-subtitle">FRC Match Scheduler & Results Tracker</div>
     </div>
-    
+  </div>
+  
+  <div class="container">
     <div class="content">
+      <div class="app-description">
+        <p>Vorel provides real-time FRC match schedules, results, and team statistics by connecting to the FIRST Nexus API and The Blue Alliance API.</p>
+        
+        <div class="features-list">
+          <div class="feature-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" fill="currentColor"/>
+            </svg>
+            <div class="feature-text">Real-time match status updates</div>
+          </div>
+          <div class="feature-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" fill="currentColor"/>
+            </svg>
+            <div class="feature-text">Match results and scoring details</div>
+          </div>
+          <div class="feature-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" fill="currentColor"/>
+            </svg>
+            <div class="feature-text">Ranking points calculations</div>
+          </div>
+          <div class="feature-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" fill="currentColor"/>
+            </svg>
+            <div class="feature-text">Responsive design for all devices</div>
+          </div>
+        </div>
+      </div>
+      
       <div class="form-container">
-        <div class="form-title">Enter Team and Event Details</div>
+        <div class="form-title">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM19 19H5V5H19V19Z" fill="#4fc3f7"/>
+            <path d="M7 12H9V17H7V12Z" fill="#4fc3f7"/>
+            <path d="M15 7H17V17H15V7Z" fill="#4fc3f7"/>
+            <path d="M11 14H13V17H11V14Z" fill="#4fc3f7"/>
+            <path d="M11 10H13V12H11V10Z" fill="#4fc3f7"/>
+          </svg>
+          Enter Team and Event Details
+        </div>
+        
         <form method="get" action="/">
-          <label for="teamKey">Team Key:</label>
-          <input type="text" name="teamKey" id="teamKey" required placeholder="ex: frc254" />
+          <div class="form-row">
+            <label for="teamKey">Team Number:</label>
+            <input type="text" name="teamKey" id="teamKey" required placeholder="ex: 1334 or frc1334" />
+            <span class="input-hint">Enter your team number with or without the "frc" prefix</span>
+          </div>
           
-          <label for="eventKey">Event Key:</label>
-          <input type="text" name="eventKey" id="eventKey" required placeholder="ex: 2025miket" />
+          <div class="form-row">
+            <label for="eventKey">Event Key:</label>
+            <input type="text" name="eventKey" id="eventKey" required placeholder="ex: 2025miket" />
+            <span class="input-hint">Find event keys on The Blue Alliance (e.g., 2025miket for Michigan Kettering 2025)</span>
+          </div>
           
-          <button type="submit">View Matches</button>
+          <button type="submit">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49L20.49 19L15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z" fill="white"/>
+            </svg>
+            View Matches
+          </button>
         </form>
       </div>
     </div>
-    
-    <div class="footer">
-      <div>Data provided by FIRST Nexus API & TBA APIs</div>
-      <div>Vorel App © 2025</div>
+  </div>
+  
+  <div class="footer">
+    <div class="footer-content">
+      <img src="/banner.png" alt="Vorel App Banner" class="footer-logo" />
+      <div class="footer-subtitle">FRC Match Scheduler & Results Tracker</div>
+      <div class="footer-info">Data provided by FIRST Nexus API & The Blue Alliance APIs</div>
+      <div class="footer-copyright">Vorel App © 2025 • <a href="https://github.com/1334Robotics/vorel-app" style="color: #4fc3f7; text-decoration: none;">GitHub</a></div>
     </div>
   </div>
 </body>
