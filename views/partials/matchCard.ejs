@@ -2,14 +2,35 @@
   const isRed = match.redTeams.includes(formattedTeamKey);
   const allianceColor = isRed ? "red" : "blue";
   
+  // Improved timestamp validation and debugging
   let timeDisplay = "TBD";
-  if (match.times.scheduledStartTime) {
-    const matchDate = new Date(match.times.scheduledStartTime);
-    timeDisplay = matchDate.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
+  let rawScheduledTime = "";
+  if (match.times && match.times.scheduledStartTime) {
+    try {
+      // Store raw timestamp for client-side processing
+      rawScheduledTime = match.times.scheduledStartTime;
+      
+      const matchDate = new Date(match.times.scheduledStartTime);
+      if (!isNaN(matchDate.getTime())) {
+        timeDisplay = matchDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+      } else {
+        console.log("Invalid date from:", match.times.scheduledStartTime);
+        timeDisplay = "TBD (Invalid date)";
+      }
+    } catch (e) {
+      console.error("Error formatting scheduled time:", e);
+      timeDisplay = "TBD (Error)";
+    }
+  }
+  
+  // Same validation for estimated time
+  let rawEstimatedTime = "";
+  if (match.times && match.times.estimatedStartTime) {
+    rawEstimatedTime = match.times.estimatedStartTime;
   }
   
   let statusClass = "status-default";
@@ -36,9 +57,6 @@
                                   typeof locals.showRankingPoints !== 'undefined') ? 
                                   locals.showRankingPoints : true;
 
-  // Store raw timestamp instead of formatted string
-  const rawScheduledTime = match.times.scheduledStartTime;
-  const rawEstimatedTime = match.times.estimatedStartTime;
 %>
 
 <div class="match-card" id="match-<%= match.label.replace(' ', '-') %>">
@@ -62,7 +80,11 @@
         <% } %>
       <% } %>
     </div>
-    <div class="match-time" data-timestamp="<%= rawScheduledTime %>"><%= timeDisplay %></div>
+    <div class="match-time" data-timestamp="<%= rawScheduledTime %>">
+      <%= timeDisplay %>
+      <!-- Temporary debugging info -->
+      <span style="display: none;" class="debug-timestamp">Raw: <%= rawScheduledTime %></span>
+    </div>
   </div>
   <div class="match-content">
     <div class="match-details">
