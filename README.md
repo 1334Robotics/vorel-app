@@ -57,7 +57,7 @@ Access the application by navigating to `http://localhost:3002` in your browser.
 ### How to use
 
 1. Enter a team number (e.g., 1334 or frc1334)
-2. Enter an event key (e.g., 2025miket)
+2. Enter an event key (e.g., 2025oncmp2)
 3. View match schedule and results
 
 ## Embedding in another website
@@ -66,7 +66,7 @@ You can embed the matches display in another website using an iframe:
 
 ```html
 <iframe 
-  src="http://your-server-url/embed?teamKey=1334&eventKey=2025miket&height=600" 
+  src="http://your-server-url/embed?teamKey=1334&eventKey=2025oncmp2&height=600" 
   width="100%" 
   height="600" 
   frameborder="0">
@@ -103,7 +103,7 @@ docker run -p 3002:3002 --env-file .env vorel-app
 ### Query Parameters
 
 - `teamKey` - Team number (with or without "frc" prefix)
-- `eventKey` - Event key (e.g., 2025miket)
+- `eventKey` - Event key (e.g., 2025oncmp2)
 - `height` - (Embed only) Height of the container in pixels
 
 ## License
