@@ -1,5 +1,5 @@
 {
-  "name": "frc-matches-fetcher",
+  "name": "vorel-app",
   "version": "1.0.0",
   "description": "A service to fetch alliance matches of a specific team in an event using the Blue Alliance API.",
   "main": "src/server.js",
@@ -14,7 +14,7 @@
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
     "express": "^4.21.2",
-    "frc-matches-fetcher": "file:"
+    "vorel-app": "file:"
   },
   "keywords": [
     "blue-alliance",

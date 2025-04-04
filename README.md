@@ -1,4 +1,4 @@
-# FRC Matches Fetcher
+# Vorel
 
 A web service that displays match schedules and results for FRC teams at events using the FIRST Nexus API and The Blue Alliance API.
 
@@ -24,8 +24,8 @@ A web service that displays match schedules and results for FRC teams at events 
 
 1. Clone the repository
 ```bash
-git clone https://github.com/1334Robotics/frc-matches-fetcher.git
-cd frc-matches-fetcher
+git clone https://github.com/1334Robotics/vorel-app.git
+cd vorel-app
 ```
 
 2. Install dependencies
@@ -87,8 +87,8 @@ docker-compose up -d
 ### Using Docker directly
 
 ```bash
-docker build -t frc-matches-fetcher .
-docker run -p 3002:3002 --env-file .env frc-matches-fetcher
+docker build -t vorel-app .
+docker run -p 3002:3002 --env-file .env vorel-app
 ```
 
 ## API Documentation
