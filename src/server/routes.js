@@ -23,7 +23,8 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
     // Create a map of TBA match results for quick lookup
     const tbaMatchMap = {};
     tbaMatches.forEach(match => {
-      const matchKey = match.comp_level + match.match_number;
+      // Add a separator to avoid ambiguity (e.g. qm1 vs qm10)
+      const matchKey = match.comp_level + "_" + match.match_number;
       tbaMatchMap[matchKey] = match;
     });
 
@@ -42,7 +43,8 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
           default: compLevel = 'xx';
         }
 
-        const matchKey = compLevel + number;
+        // When looking up matches
+        const matchKey = compLevel + "_" + number;
         const tbaMatch = tbaMatchMap[matchKey];
 
         // Only consider it a qualification match if it explicitly has "qualification" in the label
@@ -75,21 +77,31 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
           if (isQualificationMatch && tbaMatch.score_breakdown) {
             const rpBreakdown = tbaMatch.score_breakdown[allianceColor];
 
+            // Debug output to see what's happening with ranking points
+            
+            // console.log('\n----- RANKING POINTS DEBUG -----');
+            // console.log(`Match: ${match.label} (Key: ${matchKey})`);
+            // console.log(`Team: ${teamKey} on ${allianceColor} alliance`);
+            // console.log('TBA match data:', JSON.stringify({
+            //   comp_level: tbaMatch.comp_level,
+            //   match_number: tbaMatch.match_number,
+            //   score_breakdown: tbaMatch.score_breakdown[allianceColor]
+            // }, null, 2));
+
             if (rpBreakdown) {
               match.rankingPoints = {
                 total: 0,
                 breakdown: []
               };
 
-              // For 2025, try multiple possible field names for auto RP
-              if (rpBreakdown.autoPoints !== undefined && rpBreakdown.autoPoints >= 3) {
-                // Arbitrary threshold based on game rules
+              // For 2025, check the autoBonusAchieved field for Auto RP
+              if (rpBreakdown.autoBonusAchieved) {
                 match.rankingPoints.breakdown.push('Auto RP');
                 match.rankingPoints.total += 1;
               }
 
               // End-game Barge RP check
-              if (rpBreakdown.endGameBargePoints >= 15 || 
+              if (rpBreakdown.bargeBonusAchieved || 
                   rpBreakdown.endgameRankingPoint || 
                   rpBreakdown.bargeRankingPoint) {
                 match.rankingPoints.breakdown.push('Barge RP');
@@ -118,6 +130,13 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
                 match.rankingPoints.breakdown.push('Coopertition RP');
                 match.rankingPoints.total += 1;
               }
+              
+              // Debug output of calculated RPs
+              console.log('Calculated ranking points:', {
+                total: match.rankingPoints.total,
+                breakdown: match.rankingPoints.breakdown
+              });
+              console.log('----------------------------------\n');
             }
           }
         }
