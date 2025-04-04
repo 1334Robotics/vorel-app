@@ -388,10 +388,17 @@
     }
 
     .qr-code-info {
-      color: #aaa;
-      font-size: 0.75em;
+      color: #fff; /* Changed from #aaa to white for better visibility */
+      font-size: 1.1em; /* Increased from 0.75em */
       text-align: center;
       margin-top: 10px;
+      font-weight: 500; /* Added font weight for better visibility */
+    }
+
+    @media (max-width: 768px) {
+      .qr-code-info {
+        font-size: 0.9em; /* Increased from 0.7em for mobile */
+      }
     }
 
     @media (max-width: 768px) {
