@@ -258,70 +258,56 @@
   
   // Format all timestamps to local timezone
   function formatAllTimestamps() {
+    console.log("Running timestamp formatter");
+    
     // Format match header times
-    document.querySelectorAll('.match-time[data-timestamp]').forEach(el => {
+    document.querySelectorAll('[data-timestamp]').forEach(el => {
       const timestamp = el.getAttribute('data-timestamp');
+      console.log("Processing timestamp:", timestamp, "for element:", el.className);
+      
+      // Check if timestamp exists and is valid
       if (timestamp && timestamp !== "null" && timestamp !== "undefined" && timestamp !== "") {
         try {
-          const date = new Date(timestamp);
-          if (!isNaN(date.getTime())) { // Check if date is valid
+          // Try parsing the timestamp - support both ISO strings and Unix timestamps
+          let date;
+          
+          // If it's a number (unix timestamp in milliseconds), convert it
+          if (!isNaN(timestamp) && timestamp.length > 10) {
+            date = new Date(parseInt(timestamp));
+          } else {
+            // Otherwise treat as ISO string
+            date = new Date(timestamp);
+          }
+          
+          console.log("Parsed date:", date);
+          
+          if (!isNaN(date.getTime())) {
+            // Format the valid date
             el.textContent = date.toLocaleTimeString('en-US', {
               hour: 'numeric',
               minute: '2-digit',
               hour12: true
             });
+            console.log("Formatted time:", el.textContent);
+          } else {
+            console.log("Invalid date after parsing:", date);
+            // For debugging, show the raw timestamp
+            el.textContent = "TBD [Invalid: " + timestamp.substring(0, 30) + "]";
           }
         } catch (e) {
-          // Keep existing content if date parsing fails
+          console.error("Error formatting timestamp:", timestamp, e);
+          el.textContent = "TBD [Error]";
         }
+      } else {
+        console.log("Empty or null timestamp");
+        el.textContent = "TBD";
       }
     });
-    
-    // Format detailed time displays
-    document.querySelectorAll('.formatted-time[data-timestamp]').forEach(el => {
-      const timestamp = el.getAttribute('data-timestamp');
-      if (timestamp && timestamp !== "null") {
-        const date = new Date(timestamp);
-        el.textContent = date.toLocaleString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-      }
-    });
-    
-    // Format next match times in the sidebar
-    const nextMatchTimeEl = document.querySelector('.next-match-time');
-    const nextMatchEstimatedEl = document.querySelector('.next-match-estimated');
-    
-    if (nextMatchTimeEl && nextMatchTimeEl.hasAttribute('data-timestamp')) {
-      const timestamp = nextMatchTimeEl.getAttribute('data-timestamp');
-      if (timestamp && timestamp !== "null") {
-        const date = new Date(timestamp);
-        nextMatchTimeEl.textContent = date.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-      }
-    }
-    
-    if (nextMatchEstimatedEl && nextMatchEstimatedEl.hasAttribute('data-timestamp')) {
-      const timestamp = nextMatchEstimatedEl.getAttribute('data-timestamp');
-      if (timestamp && timestamp !== "null") {
-        const date = new Date(timestamp);
-        // Keep the "Est: " prefix
-        nextMatchEstimatedEl.textContent = "Est: " + date.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-      }
-    }
   }
   
   // Call when DOM is loaded
   document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM loaded, formatting timestamps");
     formatAllTimestamps();
   });
 </script>
