@@ -410,6 +410,51 @@
         font-size: 0.7em;
       }
     }
+
+    /* QR Code reopen button */
+    .qr-code-reopen {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background-color: #1d1d1d;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      cursor: pointer;
+      z-index: 100;
+      transition: all 0.3s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .qr-code-reopen.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .qr-code-reopen:hover {
+      background-color: #2d2d2d;
+      transform: scale(1.1);
+    }
+
+    .qr-code-reopen svg {
+      width: 20px;
+      height: 20px;
+      fill: #4fc3f7;
+    }
+
+    @media (max-width: 768px) {
+      .qr-code-reopen {
+        right: 10px;
+        bottom: 10px;
+        width: 36px;
+        height: 36px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -643,7 +688,10 @@
       // First, check if QR code was previously dismissed
       const qrDismissed = localStorage.getItem('qrDismissed');
       
-      if (!qrDismissed) {
+      if (qrDismissed === 'true') {
+        // If QR code was dismissed before, show the reopen button
+        document.getElementById('qr-code-reopen').classList.add('visible');
+      } else {
         // Add QR code script
         const script = document.createElement('script');
         script.src = "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js";
@@ -677,14 +725,38 @@
       // Remember the dismissal in localStorage
       localStorage.setItem('qrDismissed', 'true');
       
-      // Remove after animation completes
+      // Show the reopen button after a short delay
       setTimeout(() => {
-        const container = document.getElementById('qr-code-container');
-        if (container) {
-          container.parentNode.removeChild(container);
-        }
-      }, 500);
+        const reopenButton = document.getElementById('qr-code-reopen');
+        reopenButton.classList.add('visible');
+      }, 300);
+    }
+
+    function reopenQRCode() {
+      // Hide the reopen button
+      document.getElementById('qr-code-reopen').classList.remove('visible');
+      
+      // Show the QR code container
+      document.getElementById('qr-code-container').classList.remove('hidden');
+      
+      // Ensure we have the QR code library loaded
+      if (typeof qrcode !== 'function') {
+        const script = document.createElement('script');
+        script.src = "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js";
+        script.onload = generateQRCode;
+        document.head.appendChild(script);
+      } else {
+        // If already loaded, just regenerate the code
+        generateQRCode();
+      }
     }
   </script>
+
+  <!-- QR Code Reopen Button -->
+  <div id="qr-code-reopen" class="qr-code-reopen" onclick="reopenQRCode()">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <path d="M3 3h7v7H3V3zm2 2v3h3V5H5zm9-2h7v7h-7V3zm2 2v3h3V5h-3zM3 14h7v7H3v-7zm2 2v3h3v-3H5zm13-2v3h4v-3h-4zm-6 0v7h2v-7h-2zm4 7v-2h-2v2h2z"/>
+    </svg>
+  </div>
 </body>
 </html>
