@@ -130,16 +130,14 @@
         hour: 'numeric',
         minute: '2-digit',
         second: '2-digit',
-        hour12: true,
-        timeZone: 'Canada/Eastern'
+        hour12: true
       });
       
       clockDate.textContent = syncedNow.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
-        day: 'numeric',
-        timeZone: 'Canada/Eastern'
+        day: 'numeric'
       });
     }
   }
