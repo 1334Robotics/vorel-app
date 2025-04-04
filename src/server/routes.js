@@ -132,11 +132,11 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
               }
               
               // Debug output of calculated RPs
-              console.log('Calculated ranking points:', {
-                total: match.rankingPoints.total,
-                breakdown: match.rankingPoints.breakdown
-              });
-              console.log('----------------------------------\n');
+              // console.log('Calculated ranking points:', {
+              //   total: match.rankingPoints.total,
+              //   breakdown: match.rankingPoints.breakdown
+              // });
+              // console.log('----------------------------------\n');
             }
           }
         }
