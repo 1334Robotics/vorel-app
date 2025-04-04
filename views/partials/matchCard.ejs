@@ -8,8 +8,7 @@
     timeDisplay = matchDate.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true,
-      timeZone: 'Canada/Eastern' // Ensure EST
+      hour12: true
     });
   }
   
@@ -117,15 +116,13 @@
         <div class="time-row">Scheduled: <%= new Date(match.times.scheduledStartTime).toLocaleString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
-          hour12: true,
-          timeZone: 'Canada/Eastern'
+          hour12: true
         }) %></div>
         <% if (match.times.estimatedStartTime) { %>
           <div class="time-row">Estimated: <%= new Date(match.times.estimatedStartTime).toLocaleString('en-US', {
             hour: 'numeric',
             minute: '2-digit',
-            hour12: true,
-            timeZone: 'Canada/Eastern'
+            hour12: true
           }) %></div>
         <% } %>
       </div>

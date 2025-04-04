@@ -570,8 +570,7 @@
                     timeDisplay = matchDate.toLocaleTimeString('en-US', {
                       hour: 'numeric',
                       minute: '2-digit',
-                      hour12: true,
-                      timeZone: 'Canada/Eastern'
+                      hour12: true
                     });
                   }
                 %>
@@ -583,8 +582,7 @@
                   Est: <%= new Date(nextMatch.times.estimatedStartTime).toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
-                    hour12: true,
-                    timeZone: 'Canada/Eastern'
+                    hour12: true
                   }) %>
                 </div>
               <% } %>
