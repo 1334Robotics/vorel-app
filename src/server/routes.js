@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { fetchEventDetails, fetchTeamStatusAtEvent, fetchEventMatchResults, fetchTBAEventDetails } = require('./api');
+const { fetchEventDetails, fetchTeamStatusAtEvent, fetchEventMatchResults, fetchTBAEventDetails, searchTBAEvents } = require('./api');
 const crypto = require('crypto');
 
 // GET /api/TBA-matches/test - Returns raw event data
@@ -663,5 +663,33 @@ function extractRPRelevantData(breakdown) {
   };
 }
 
+// Event search endpoint
+router.get('/api/events/search', async (req, res) => {
+  try {
+    const query = req.query.q || '';
+    
+    if (query.length < 3) {
+      return res.json([]);
+    }
+    
+    // Get current year
+    const currentYear = new Date().getFullYear();
+    
+    // Search events from current and next year
+    const [currentYearEvents, nextYearEvents] = await Promise.all([
+      searchTBAEvents(query, currentYear),
+      searchTBAEvents(query, currentYear + 1)
+    ]);
+    
+    // Combine and limit results
+    const combinedEvents = [...nextYearEvents, ...currentYearEvents];
+    
+    // Return top 10 results
+    res.json(combinedEvents.slice(0, 10));
+  } catch (error) {
+    console.error('Error searching events:', error);
+    res.status(500).json({ error: 'Failed to search events' });
+  }
+});
 
 module.exports = router;

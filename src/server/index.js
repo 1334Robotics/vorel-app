@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const app = express();
 const apiRoutes = require('./routes');
+const { initializeEventCache } = require('./api'); // Add this line near the top of src/server/index.js after importing routes
 
 // Middleware
 app.use(cors());
