@@ -16,8 +16,7 @@ A Public web service that displays match schedules and results for FRC teams at 
   /></a>
   <a href="https://vorel.app"
     ><img
-      src="https://img.shields.io/badge/Public-Website-orange?style=for-the-badge
-      "
+      src="https://img.shields.io/badge/Public-Website-orange?style=for-the-badge"
       alt="Website Link"/></img
   ></a>
   <a href="https://github.com/1334Robotics/vorel-app/commits/main/"
