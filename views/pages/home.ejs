@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=width=device-width, initial-scale=1.0">
   <title>Vorel - FRC Match Schedule & Results Tracker</title>
   <%- include('../partials/styles') %>
   <style>
@@ -230,6 +230,55 @@
         font-size: 1.1em;
       }
     }
+    
+    .search-container {
+      position: relative;
+      width: 100%;
+    }
+    
+    .search-results {
+      position: absolute;
+      width: 100%;
+      max-height: 250px;
+      overflow-y: auto;
+      background-color: #333;
+      border: 1px solid #444;
+      border-radius: 0 0 6px 6px;
+      z-index: 100;
+      display: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    
+    .search-results.active {
+      display: block;
+    }
+    
+    .search-item {
+      padding: 12px 15px;
+      cursor: pointer;
+      border-bottom: 1px solid #444;
+      color: #e0e0e0;
+    }
+    
+    .search-item:hover, .search-item.selected {
+      background-color: #444;
+    }
+    
+    .search-item .event-name {
+      font-weight: bold;
+      color: #4fc3f7;
+      margin-bottom: 4px;
+    }
+    
+    .search-item .event-details {
+      font-size: 0.9em;
+      color: #aaa;
+    }
+    
+    .search-item .event-key {
+      font-size: 0.8em;
+      color: #777;
+    }
   </style>
 </head>
 <body>
@@ -288,14 +337,18 @@
         <form method="get" action="/">
           <div class="form-row">
             <label for="teamKey">Team Number:</label>
-            <input type="text" name="teamKey" id="teamKey" required placeholder="ex: 1334 or frc1334" />
+            <input type="text" name="teamKey" id="teamKey" placeholder="ex: 1334 or frc1334" />
             <span class="input-hint">Enter your team number with or without the "frc" prefix</span>
           </div>
           
           <div class="form-row">
-            <label for="eventKey">Event Key:</label>
-            <input type="text" name="eventKey" id="eventKey" required placeholder="ex: 2025oncmp2" />
-            <span class="input-hint">Find event keys on The Blue Alliance (e.g., 2025oncmp2 for 2025 FIRST Ontario Provincial Championship - Technology Division)</span>
+            <label for="eventSearch">Event:</label>
+            <div class="search-container">
+              <input type="text" name="eventSearch" id="eventSearch" placeholder="Search for an event (e.g., Ontario Provincial Championship)" autocomplete="off" />
+              <input type="hidden" name="eventKey" id="eventKey" />
+              <div class="search-results" id="searchResults"></div>
+            </div>
+            <span class="input-hint">Search for events by name, or event key (Note: Only 2025+ Events are valid)</span>
           </div>
           
           <button type="submit">
@@ -317,5 +370,226 @@
       <div class="footer-copyright">Vorel App © 2025 • <a href="https://github.com/1334Robotics/vorel-app" style="color: #4fc3f7; text-decoration: none;">GitHub</a></div>
     </div>
   </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('eventSearch');
+      const eventKeyInput = document.getElementById('eventKey');
+      const searchResults = document.getElementById('searchResults');
+      
+      let selectedIndex = -1;
+      let searchTimeout;
+      let events = [];
+      
+      const form = document.querySelector('form');
+
+      // Add form submission handler
+      form.addEventListener('submit', (e) => {
+        const teamKeyInput = document.getElementById('teamKey');
+        const eventSearchInput = document.getElementById('eventSearch');
+        const eventKeyInput = document.getElementById('eventKey');
+        
+        // Check if the team number is empty
+        if (!teamKeyInput.value.trim()) {
+          e.preventDefault(); // Prevent form submission
+          
+          // Create error message for team key if it doesn't exist yet
+          let teamErrorMsg = document.querySelector('.team-error');
+          if (!teamErrorMsg) {
+            teamErrorMsg = document.createElement('div');
+            teamErrorMsg.className = 'team-error';
+            teamErrorMsg.style.color = '#ff5252';
+            teamErrorMsg.style.fontSize = '0.9em';
+            teamErrorMsg.style.marginTop = '5px';
+            teamErrorMsg.textContent = 'Please enter a team number';
+            teamKeyInput.parentNode.appendChild(teamErrorMsg);
+          }
+          
+          // Highlight the team input field
+          teamKeyInput.style.borderColor = '#ff5252';
+        }
+        
+        // Existing event search validation
+        if (eventSearchInput.value.trim() && !eventKeyInput.value.trim()) {
+          e.preventDefault(); // Prevent form submission
+          
+          // Create error message if it doesn't exist yet
+          let errorMsg = document.querySelector('.event-error');
+          if (!errorMsg) {
+            errorMsg = document.createElement('div');
+            errorMsg.className = 'event-error';
+            errorMsg.style.color = '#ff5252';
+            errorMsg.style.fontSize = '0.9em';
+            errorMsg.style.marginTop = '5px';
+            errorMsg.textContent = 'Please select an event from the search results';
+            eventSearchInput.parentNode.appendChild(errorMsg);
+          }
+          
+          // Highlight the input field
+          eventSearchInput.style.borderColor = '#ff5252';
+        }
+      });
+
+      // Add an input handler to clear the team error styling when user types
+      document.getElementById('teamKey').addEventListener('input', (e) => {
+        // Remove error styling if present
+        e.target.style.borderColor = '';
+        const errorMsg = document.querySelector('.team-error');
+        if (errorMsg) errorMsg.remove();
+      });
+
+      // Clear the event key when search input is modified manually
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        // Clear event key when input changes
+        eventKeyInput.value = '';
+        
+        // Remove error styling if present
+        searchInput.style.borderColor = '';
+        const errorMsg = document.querySelector('.event-error');
+        if (errorMsg) errorMsg.remove();
+        
+        // Rest of your existing input handler code...
+        clearTimeout(searchTimeout);
+        
+        if (query.length < 3) {
+          searchResults.innerHTML = '';
+          searchResults.classList.remove('active');
+          return;
+        }
+        
+        // Set a timeout to avoid too many requests while typing
+        searchTimeout = setTimeout(() => {
+          fetchEvents(query);
+        }, 300);
+      });
+      
+      searchInput.addEventListener('keydown', (e) => {
+        if (!searchResults.classList.contains('active')) return;
+        
+        const items = searchResults.querySelectorAll('.search-item');
+        
+        // Arrow down
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+          updateSelection(items);
+        }
+        
+        // Arrow up
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          selectedIndex = Math.max(selectedIndex - 1, -1);
+          updateSelection(items);
+        }
+        
+        // Enter
+        if (e.key === 'Enter' && selectedIndex > -1 && selectedIndex < items.length) {
+          e.preventDefault();
+          items[selectedIndex].click();
+        }
+        
+        // Escape
+        if (e.key === 'Escape') {
+          closeSearchResults();
+        }
+      });
+      
+      // Close search results when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+          closeSearchResults();
+        }
+      });
+      
+      function updateSelection(items) {
+        items.forEach((item, index) => {
+          if (index === selectedIndex) {
+            item.classList.add('selected');
+            item.scrollIntoView({ block: 'nearest' });
+          } else {
+            item.classList.remove('selected');
+          }
+        });
+      }
+      
+      function closeSearchResults() {
+        searchResults.classList.remove('active');
+        selectedIndex = -1;
+      }
+      
+      function fetchEvents(query) {
+        fetch(`/api/events/search?q=${encodeURIComponent(query)}`)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`API responded with status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            events = data;
+            displayResults(events);
+          })
+          .catch(error => {
+            console.error('Error searching events:', error);
+            searchResults.innerHTML = '';
+            
+            // Show an error message instead of mock data
+            const errorElement = document.createElement('div');
+            errorElement.className = 'search-item';
+            errorElement.style.color = '#ff5252';
+            errorElement.textContent = 'Unable to fetch events. Please check your connection and try again.';
+            searchResults.appendChild(errorElement);
+            
+            // Still show the results container
+            searchResults.classList.add('active');
+          });
+      }
+      
+      function displayResults(events) {
+        searchResults.innerHTML = '';
+        
+        if (events.length === 0) {
+          const noResults = document.createElement('div');
+          noResults.className = 'search-item';
+          noResults.textContent = 'No events found';
+          searchResults.appendChild(noResults);
+        } else {
+          events.forEach(event => {
+            const item = document.createElement('div');
+            item.className = 'search-item';
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'event-name';
+            nameDiv.textContent = event.name;
+            
+            const detailsDiv = document.createElement('div');
+            detailsDiv.className = 'event-details';
+            detailsDiv.textContent = `${event.location} • ${event.date}`;
+            
+            const keyDiv = document.createElement('div');
+            keyDiv.className = 'event-key';
+            keyDiv.textContent = `Event Key: ${event.key}`;
+            
+            item.appendChild(nameDiv);
+            item.appendChild(detailsDiv);
+            item.appendChild(keyDiv);
+            
+            item.addEventListener('click', () => {
+              searchInput.value = event.name;
+              eventKeyInput.value = event.key;
+              closeSearchResults();
+            });
+            
+            searchResults.appendChild(item);
+          });
+        }
+        
+        searchResults.classList.add('active');
+        selectedIndex = -1;
+      }
+    });
+  </script>
 </body>
 </html>
