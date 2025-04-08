@@ -66,16 +66,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Configure Git user
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
       - name: Update version number
         run: |
           npm version patch -m "Bump version to %s [CI skip]"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Configure Git user
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
 
       - name: Push updated version to repository
         run: |
