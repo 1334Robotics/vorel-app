@@ -1,8 +1,42 @@
-# Vorel
+<p align="center">
+<img
+width=400
+src="views/public/banner2.png"
+alt="Vorel Banner"/>
+</p>
 
-A web service that displays match schedules and results for FRC teams at events using the FIRST Nexus API and The Blue Alliance API.
 
-![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
+A Public web service that displays match schedules and results for FRC teams at events using the FIRST Nexus API and The Blue Alliance API.
+
+<p align="center">
+  <a href="https://github.com/1334Robotics/vorel-app/actions"
+    ><img
+      src="https://img.shields.io/github/actions/workflow/status/1334Robotics/vorel-app/.github/workflows/build.yml?branch=main&style=for-the-badge"
+      alt="GitHub Actions workflow status"
+  /></a>
+  <a href="https://vorel.app"
+    ><img
+      src="https://img.shields.io/badge/Public-Website-orange?style=for-the-badge
+      "
+      alt="Website Link"/></img
+  ></a>
+  <a href="https://github.com/1334Robotics/vorel-app/commits/main/"
+    ><img
+      src="https://img.shields.io/github/commit-activity/t/1334Robotics/vorel-app?style=for-the-badge"
+      alt="Commitment Count"/></a
+  ><br />
+  <a href="https://github.com/1334Robotics/vorel-app/blob/main/LICENSE"
+    ><img
+      src="https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge"
+      alt="License | GPLV3"/></a
+  >
+  <a href="https://frc-events.firstinspires.org/team/1334"
+    >
+  <img
+      src="https://img.shields.io/badge/FRC-1334-darkred?style=for-the-badge"
+      alt="FRC 1334"
+  /></a>
+</p>
 
 ## Features
 
@@ -13,7 +47,7 @@ A web service that displays match schedules and results for FRC teams at events 
 - Responsive design suitable for mobile and desktop
 - Embeddable widget for use in other websites
 
-## Installation
+## Self-Hosting Installation
 
 ### Prerequisites
 
