@@ -202,9 +202,16 @@
           updateSelection(items);
         }
         
-        if (e.key === 'Enter' && selectedIndex > -1 && selectedIndex < items.length) {
+        if (e.key === 'Enter') {
           e.preventDefault();
-          items[selectedIndex].click();
+          if (selectedIndex > -1 && selectedIndex < items.length) {
+            items[selectedIndex].click();
+          } else if (items.length > 0) {
+            // Auto-select the first item if no item is selected
+            selectedIndex = 0;
+            updateSelection(items);
+            items[0].click();
+          }
         }
         
         if (e.key === 'Escape') {
