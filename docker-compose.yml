@@ -17,13 +17,13 @@ services:
       start_period: 10s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
-      - "com.centurylinklabs.watchtower.scope=frc-matchs"
+      - "com.centurylinklabs.watchtower.scope=vorel-app"
 
   watchtower:
     image: containrrr/watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 60 --cleanup --rolling-restart --scope frc-matchs --label-enable
+    command: --interval 60 --cleanup --rolling-restart --scope vorel-app --label-enable
     restart: always
     environment:
       - WATCHTOWER_POLL_INTERVAL=60
