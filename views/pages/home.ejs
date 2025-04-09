@@ -467,6 +467,8 @@
         const eventSearchInput = document.getElementById('eventSearch');
         const eventKeyInput = document.getElementById('eventKey');
         
+        eventSearchInput.removeAttribute('name');
+        
         if (!teamKeyInput.value.trim()) {
           e.preventDefault();
           
