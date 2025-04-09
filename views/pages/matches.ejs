@@ -6,36 +6,56 @@
   <title>Team <%= formattedTeamKey %> Matches</title>
   <%- include('../partials/styles') %>
   <style>
+    :root {
+      --primary: #4fc3f7;
+      --primary-darker: #0288d1;
+      --accent: #8B0000;
+      --accent-hover: #A00000;
+      --bg-dark: #111111;
+      --bg-card: #1a1a1a;
+      --bg-card-hover: #222222;
+      --text: #f0f0f0;
+      --text-secondary: #a0a0a0;
+      --border: #333333;
+    }
+    
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+    }
+    
     .header {
-      background-color: #1d1d1d;
-      padding: 25px 0 0 0; /* Remove bottom padding */
+      background-color: var(--bg-card);
+      padding: 25px 0 0 0;
       width: 100%;
-      box-shadow: none; /* Remove shadow, will be on event-info instead */
+      box-shadow: none;
       position: relative;
       z-index: 10;
-      margin-bottom: 0; /* Remove margin as it's now on event-info */
+      margin-bottom: 0;
     }
     
     .header-content {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0 60px; /* Increased left padding to make room for the icon */
+      padding: 0 60px;
       position: relative;
       max-width: 1200px;
       margin: 0 auto;
-      min-height: 70px; /* Ensure minimum height to accommodate icon */
+      min-height: 70px;
     }
     
     .header-subtitle {
-      color: #e0e0e0;
-      font-size: clamp(1em, 4vw, 1.4em); /* Responsive font size */
+      color: var(--text);
+      font-size: clamp(1em, 4vw, 1.4em);
       font-weight: 600;
       text-align: center;
-      margin-left: 10px; /* Added margin to ensure text doesn't crowd the icon */
-      max-width: calc(100% - 100px); /* Prevent text from overlapping icon */
-      overflow-wrap: break-word; /* Allow text to wrap naturally */
-      white-space: normal; /* Allow wrapping if needed */
+      margin-left: 10px;
+      max-width: calc(100% - 100px);
+      overflow-wrap: break-word;
+      white-space: normal;
       line-height: 1.3;
     }
     
@@ -54,7 +74,7 @@
       transform: translateY(-50%);
       width: 40px;
       height: 40px;
-      z-index: 1; /* Ensure icon stays on top */
+      z-index: 1;
     }
     
     .main-container {
@@ -67,7 +87,7 @@
     .matches-column {
       flex: 1;
       min-width: 0;
-      max-width: 800px; /* Limit maximum width */
+      max-width: 800px;
     }
     
     .info-column {
@@ -78,52 +98,62 @@
     }
     
     .team-ranking-section, .next-match-card, .clock-section {
-      background-color: #1d1d1d;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 15px;
+      background-color: var(--bg-card);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 20px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      border: 1px solid var(--border);
+      transition: all 0.3s ease;
+    }
+    
+    .team-ranking-section:hover, .next-match-card:hover, .clock-section:hover {
+      background-color: var(--bg-card-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     
     .info-title {
       font-size: 1.1em;
       font-weight: bold;
-      color: #4fc3f7;
-      margin-bottom: 10px;
-      border-bottom: 1px solid #333;
-      padding-bottom: 5px;
+      color: var(--primary);
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
     }
     
     .ranking-stats {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
+      gap: 12px;
     }
     
     .stat-card {
-      background-color: #252525;
+      background-color: rgba(37, 37, 37, 0.7);
       padding: 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       text-align: center;
+      border: 1px solid var(--border);
     }
     
     .stat-value {
       font-size: 1.6em;
       font-weight: bold;
       margin-bottom: 5px;
-      color: #e0e0e0;
+      color: var(--text);
     }
     
     .stat-label {
       font-size: 0.9em;
-      color: #aaa;
+      color: var(--text-secondary);
     }
     
     .next-match-details {
-      background-color: #252525;
-      padding: 12px;
-      border-radius: 6px;
+      background-color: rgba(37, 37, 37, 0.7);
+      padding: 15px;
+      border-radius: 8px;
       margin-top: 10px;
+      border: 1px solid var(--border);
     }
     
     .next-match-time {
@@ -145,8 +175,8 @@
     }
     
     .match-number-badge {
-      background-color: #333;
-      color: #fff;
+      background-color: var(--bg-card);
+      color: var(--text);
       padding: 4px 8px;
       border-radius: 4px;
       font-weight: bold;
@@ -181,20 +211,21 @@
       font-weight: bold;
       text-align: center;
       margin: 10px 0;
-      color: #e0e0e0;
+      color: var(--text);
     }
     
     .clock-date {
       text-align: center;
-      color: #aaa;
+      color: var(--text-secondary);
       font-size: 0.9em;
     }
     
     .next-match-teams {
       margin-top: 10px;
-      background-color: #2d2d2d;
-      border-radius: 4px;
-      padding: 10px;
+      background-color: rgba(45, 45, 45, 0.7);
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid var(--border);
     }
 
     .teams-section {
@@ -230,9 +261,14 @@
 
     .team-item {
       font-size: 0.9em;
-      padding: 2px 5px;
-      background-color: #3d3d3d;
-      border-radius: 3px;
+      padding: 4px 8px;
+      background-color: rgba(61, 61, 61, 0.7);
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+
+    .team-item:hover {
+      background-color: rgba(75, 75, 75, 0.8);
     }
 
     .team-item.highlight {
@@ -242,41 +278,55 @@
     
     .team-item.highlight.red-highlight {
       border-left: 3px solid #f44336;
-      background-color: #3f2424;
+      background-color: rgba(63, 36, 36, 0.8);
     }
     
     .team-item.highlight.blue-highlight {
       border-left: 3px solid #2196f3;
-      background-color: #1a2a3a;
+      background-color: rgba(26, 42, 58, 0.8);
     }
     
     .team-chip.highlight.red-team {
-      background-color: #3f2424;
+      background-color: rgba(63, 36, 36, 0.8);
       font-weight: bold;
       border-width: 3px;
     }
     
     .team-chip.highlight.blue-team {
-      background-color: #1a2a3a;
+      background-color: rgba(26, 42, 58, 0.8);
       font-weight: bold;
       border-width: 3px;
     }
     
     .event-info {
-      background-color: #252525;
-      padding: 10px 60px; 
-      border-radius: 0 0 6px 6px;
+      background-color: rgba(37, 37, 37, 0.9);
+      padding: 12px 60px; 
+      border-radius: 0 0 12px 12px;
       margin-top: 0;
       margin-bottom: 25px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      /* Fix to match header width exactly */
-      width: calc(100% - 120px); /* Subtract the horizontal padding (60px * 2) */
-      max-width: 1080px; /* 1200px - 120px padding */
+      width: calc(100% - 120px);
+      max-width: 1080px;
       margin-left: auto;
       margin-right: auto;
       box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-top: none;
+    }
+    
+    .event-info span {
+      color: var(--text);
+    }
+    
+    .now-queuing {
+      color: var(--primary) !important;
+      font-weight: 500;
+    }
+    
+    .footer .container {
+      min-height: auto; /* Override the 100vh for footer container */
     }
     
     @media (max-width: 768px) {
@@ -295,7 +345,7 @@
       .header-subtitle {
         margin: 10px 0;
         max-width: 100%;
-        font-size: clamp(0.9em, 5vw, 1.2em); /* Slightly smaller on mobile */
+        font-size: clamp(0.9em, 5vw, 1.2em);
       }
       .header-content {
         flex-direction: column;
@@ -305,15 +355,15 @@
         flex-direction: column;
         padding: 10px 20px;
         gap: 5px;
-        width: calc(100% - 40px); /* Adjust for mobile padding */
+        width: calc(100% - 40px);
         max-width: none;
       }
     }
 
     @keyframes blink-background {
-      0% { background-color: #252525; }
-      50% { background-color: #4a2917; }
-      100% { background-color: #252525; }
+      0% { background-color: rgba(37, 37, 37, 0.7); }
+      50% { background-color: rgba(74, 41, 23, 0.8); }
+      100% { background-color: rgba(37, 37, 37, 0.7); }
     }
 
     .next-match-details.queuing {
@@ -321,7 +371,6 @@
       border: 2px solid #ff9800;
     }
 
-    /* Update the style for estimated time */
     .next-match-estimated {
       font-size: 1.4em;
       font-weight: bold;
@@ -331,21 +380,21 @@
       margin-bottom: 8px;
     }
 
-    /* QR Code Floating Component */
     .qr-code-container {
       position: fixed;
       right: 20px;
       bottom: 20px;
-      background-color: #1d1d1d;
-      border-radius: 8px;
+      background-color: var(--bg-card);
+      border-radius: 12px;
       padding: 15px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
       z-index: 100;
       width: 160px;
       transition: transform 0.3s ease, opacity 0.3s ease;
       display: flex;
       flex-direction: column;
       align-items: center;
+      border: 1px solid var(--border);
     }
 
     .qr-code-container.hidden {
@@ -358,7 +407,7 @@
       font-size: 0.9em;
       font-weight: bold;
       margin-bottom: 10px;
-      color: #4fc3f7;
+      color: var(--primary);
       text-align: center;
     }
 
@@ -374,34 +423,71 @@
       right: 5px;
       background: none;
       border: none;
-      color: #aaa;
+      color: var(--text-secondary);
       cursor: pointer;
       font-size: 18px;
       padding: 2px 6px;
       border-radius: 50%;
-      transition: background-color 0.2s;
+      transition: background-color 0.2s, color 0.2s;
     }
 
     .qr-code-close:hover {
       background-color: rgba(255,255,255,0.1);
-      color: #fff;
+      color: var(--text);
     }
 
     .qr-code-info {
-      color: #fff; /* Changed from #aaa to white for better visibility */
-      font-size: 1.1em; /* Increased from 0.75em */
+      color: var(--text);
+      font-size: 1.1em;
       text-align: center;
       margin-top: 10px;
-      font-weight: 500; /* Added font weight for better visibility */
+      font-weight: 500;
+    }
+
+    .qr-code-reopen {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background-color: var(--bg-card);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      cursor: pointer;
+      z-index: 100;
+      transition: all 0.3s ease;
+      opacity: 0;
+      pointer-events: none;
+      border: 1px solid var(--border);
+    }
+
+    .qr-code-reopen.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .qr-code-reopen:hover {
+      background-color: var(--bg-card-hover);
+      transform: scale(1.1);
+    }
+
+    .qr-code-reopen svg {
+      width: 20px;
+      height: 20px;
+      fill: var(--primary);
     }
 
     @media (max-width: 768px) {
-      .qr-code-info {
-        font-size: 0.9em; /* Increased from 0.7em for mobile */
+      .qr-code-reopen {
+        right: 10px;
+        bottom: 10px;
+        width: 36px;
+        height: 36px;
       }
-    }
-
-    @media (max-width: 768px) {
+      
       .qr-code-container {
         right: 10px;
         bottom: 10px;
@@ -414,53 +500,57 @@
       }
       
       .qr-code-info {
-        font-size: 0.7em;
+        font-size: 0.9em;
       }
     }
-
-    /* QR Code reopen button */
-    .qr-code-reopen {
-      position: fixed;
-      right: 20px;
-      bottom: 20px;
-      background-color: #1d1d1d;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-      cursor: pointer;
-      z-index: 100;
-      transition: all 0.3s ease;
-      opacity: 0;
-      pointer-events: none;
+    
+    /* Add content styling for matchGroup partials */
+    .content {
+      margin-bottom: 20px;
     }
-
-    .qr-code-reopen.visible {
-      opacity: 1;
-      pointer-events: auto;
+    
+    .match-group {
+      background-color: var(--bg-card);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+      transition: all 0.2s ease;
     }
-
-    .qr-code-reopen:hover {
-      background-color: #2d2d2d;
-      transform: scale(1.1);
+    
+    .match-group:hover {
+      background-color: var(--bg-card-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
-
-    .qr-code-reopen svg {
-      width: 20px;
-      height: 20px;
-      fill: #4fc3f7;
+    
+    .match-group-title {
+      font-size: 1.3em;
+      color: var(--primary);
+      margin-bottom: 15px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
     }
-
-    @media (max-width: 768px) {
-      .qr-code-reopen {
-        right: 10px;
-        bottom: 10px;
-        width: 36px;
-        height: 36px;
-      }
+    
+    .no-matches {
+      background-color: var(--bg-card);
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 1.1em;
+      border: 1px solid var(--border);
+    }
+    
+    .error-message {
+      background-color: rgba(244, 67, 54, 0.2) !important;
+      color: #f44336 !important;
+      border: 1px solid #f44336;
+      padding: 15px !important;
+      margin: 15px 0 !important;
+      border-radius: 8px !important;
+      text-align: center !important;
     }
   </style>
 </head>
@@ -479,7 +569,7 @@
     </div>
     
     <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
-    <div class="error-message" style="background-color: #f44336; color: white; padding: 12px; margin: 15px 0; border-radius: 4px; text-align: center;">
+    <div class="error-message">
       <strong>Error:</strong> <%= errorMessage %>
     </div>
     <% } %>
@@ -645,10 +735,10 @@
                 <%= nextMatch.status %>
               </div>
             <% } else { %>
-              <div style="text-align: center; padding: 20px 0; color: #aaa; font-size: 1.2em;">
+              <div style="text-align: center; padding: 20px 0; color: var(--text-secondary); font-size: 1.2em;">
                 N/A
               </div>
-              <div style="text-align: center; color: #888; font-size: 0.9em;">
+              <div style="text-align: center; color: var(--text-secondary); font-size: 0.9em;">
                 No upcoming matches
               </div>
             <% } %>
@@ -751,8 +841,8 @@
     // Share functionality for mobile
     function shareContent() {
       const currentUrl = window.location.href;
-      const eventKey = '<%= eventKey %>'; // Get from EJS template
-      const teamKey = '<%= formattedTeamKey %>'; // Get from EJS template
+      const eventKey = '<%= eventKey %>'; 
+      const teamKey = '<%= formattedTeamKey %>'; 
       
       if (navigator.share) {
         navigator.share({
@@ -770,7 +860,7 @@
 
     function generateQRCode() {
       // Change to home page URL instead of current URL
-      const homeURL = window.location.origin; // This will get the base URL (e.g., http://localhost:3002)
+      const homeURL = window.location.origin; 
       
       // Generate QR code
       const qr = qrcode(0, 'L');
