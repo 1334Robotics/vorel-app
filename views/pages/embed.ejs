@@ -6,8 +6,34 @@
   <title>Team <%= formattedTeamKey %> Matches</title>
   <%- include('../partials/styles') %>
   <%- include('../style/style-embed') %>
+  <script>
+    // Add this before the closing </head> tag
+    (function() {
+      // Create and add a style tag to ensure refresh overlay is visible immediately
+      const style = document.createElement('style');
+      style.textContent = '.refresh-overlay { opacity: 1 !important; pointer-events: all !important; }';
+      document.head.appendChild(style);
+      
+      // Remove the style after a short delay to let CSS transitions take over
+      setTimeout(() => {
+        document.head.removeChild(style);
+      }, 100);
+    })();
+  </script>
 </head>
 <body>
+  <!-- Add refresh overlay at the beginning of body -->
+  <div id="refresh-overlay" class="refresh-overlay active">
+    <div class="refresh-spinner">
+      <div class="cube-face front"></div>
+      <div class="cube-face back"></div>
+      <div class="cube-face right"></div>
+      <div class="cube-face left"></div>
+      <div class="cube-face top"></div>
+      <div class="cube-face bottom"></div>
+    </div>
+  </div>
+  
   <div class="container">
     <div class="header">
       Team <%= formattedTeamKey %> Matches at <%= eventName %>
@@ -76,7 +102,89 @@
           }
         });
       });
+      
+      // Hide the loading animation when DOM is loaded
+      const refreshOverlay = document.getElementById('refresh-overlay');
+      if (refreshOverlay) {
+        setTimeout(() => {
+          refreshOverlay.classList.remove('active');
+        }, 200);
+      }
+      
+      // Setup refresh animation
+      setupRefreshAnimation();
     });
+    
+    // Function to set up the refresh animation logic
+    function setupRefreshAnimation() {
+      // Get the refresh overlay element
+      const refreshOverlay = document.getElementById('refresh-overlay');
+      
+      // Create a function to intercept the regular reload and replace it with animation
+      window.performAnimatedRefresh = function() {
+        // Show the animation
+        refreshOverlay.classList.add('active');
+        
+        // After animation completes, fetch the updated content
+        setTimeout(() => {
+          // Fetch the same page with the same parameters
+          fetch(window.location.href)
+            .then(response => response.text())
+            .then(html => {
+              // Create a temporary element to parse the HTML
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = html;
+              
+              // Update the content
+              const newContent = tempDiv.querySelector('.content');
+              const currentContent = document.querySelector('.content');
+              
+              if (newContent && currentContent) {
+                currentContent.innerHTML = newContent.innerHTML;
+              }
+              
+              // Update the event info section
+              const newEventInfo = tempDiv.querySelector('.event-info');
+              const currentEventInfo = document.querySelector('.event-info');
+              
+              if (newEventInfo && currentEventInfo) {
+                currentEventInfo.innerHTML = newEventInfo.innerHTML;
+              }
+              
+              // Hide the animation
+              refreshOverlay.classList.remove('active');
+              
+              // Re-initialize match toggling
+              const matchHeaders = document.querySelectorAll('.match-header');
+              matchHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                  const details = this.parentNode.querySelector('.match-details');
+                  if (details) {
+                    details.classList.toggle('active');
+                  }
+                });
+              });
+            })
+            .catch(error => {
+              console.error('Error fetching updated content:', error);
+              // If there's an error, just do a regular page reload
+              refreshOverlay.classList.remove('active');
+              window.location.reload();
+            });
+        }, 1000);  // Wait for animation to complete
+      };
+    }
+
+    // Update the callback method to use the animated refresh instead of reload
+    window._dataCheckCallback = function(changed) {
+      if (changed) {
+        if (typeof window.performAnimatedRefresh === 'function') {
+          window.performAnimatedRefresh();
+        } else {
+          window.location.reload();  // Fallback if our function isn't available
+        }
+      }
+    };
   </script>
 </body>
 </html>
