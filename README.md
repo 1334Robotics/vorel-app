@@ -48,7 +48,7 @@ A Public web service that displays match schedules and results for FRC teams at 
 - Responsive design suitable for mobile and desktop
 - Embeddable widget for use in other websites
 
-<br /><br /><br /><br /><br /><br /><br /><br />
+<br /><br />
 
 # Self-Hosting Installation
 
