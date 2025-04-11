@@ -37,6 +37,15 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: Spsific Device? (For Raspberry Pi / Orange Pi, specify model and OS, For Desktop/Laptop, specify OS)
+      placeholder: "iPhone 13, Samsung Galaxy S22, etc. (For Desktop/Laptop, specify OS)"
+    validations:
+      required: false
+      
   - type: dropdown
     id: priority
     attributes:
