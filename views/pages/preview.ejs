@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= ogTitle %></title>
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="<%= ogUrl %>">
+  <meta property="og:title" content="<%= ogTitle %>">
+  <meta property="og:description" content="<%= ogDescription %>">
+  <meta property="og:image" content="<%= ogImage %>">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="<%= ogUrl %>">
+  <meta name="twitter:title" content="<%= ogTitle %>">
+  <meta name="twitter:description" content="<%= ogDescription %>">
+  <meta name="twitter:image" content="<%= ogImage %>">
+  
+  <%- include('../partials/styles') %>
+  <style>
+    .preview-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      text-align: center;
+    }
+    .team-heading {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    .event-name {
+      font-size: 1.5rem;
+      margin-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-container">
+    <img src="/banner.png" alt="Vorel App Banner" class="hero-logo" />
+    <h1 class="team-heading">Team <%= teamKey %></h1>
+    <h2 class="event-name"><%= eventName %></h2>
+    <p>View match schedule and results</p>
+  </div>
+
+  <script>
+    // Redirect regular browsers after a short delay
+    // This is a fallback in case the server-side detection misses some browsers
+    setTimeout(function() {
+      window.location.href = "<%= redirectUrl %>";
+    }, 500);
+  </script>
+</body>
+</html>
