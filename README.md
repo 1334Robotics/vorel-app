@@ -48,7 +48,17 @@ A Public web service that displays match schedules and results for FRC teams at 
 - Responsive design suitable for mobile and desktop
 - Embeddable widget for use in other websites
 
-## Self-Hosting Installation
+<br /><br /><br /><br /><br /><br /><br /><br />
+
+# Self-Hosting Installation
+
+
+
+>[!NOTE]
+> YOU DO NOT HAVE TO DO THIS!
+> You can visit https://vorel.app and the service is there and ready to go for **FREE** with **NO ADS**
+
+
 
 ### Prerequisites
 
