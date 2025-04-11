@@ -14,9 +14,11 @@ body:
       label: Platform
       description: What platform are you experiencing the bug on?
       options:
-        - iOS
+        - Desktop / Laptop
+        - Raspberry Pi (For TV)
+        - Orange Pi (For TV)
         - Android
-        - Web
+        - IOS
         - Other
     validations:
       required: true
@@ -25,10 +27,10 @@ body:
     id: device
     attributes:
       label: Device
-      description: What device are you using?
-      placeholder: "iPhone 13, Samsung Galaxy S22, etc."
+      description: What device are you using? (For Raspberry Pi / Orange Pi, specify model and OS)
+      placeholder: "iPhone 13, Samsung Galaxy S22, etc. (For Desktop/Laptop, specify OS)"
     validations:
-      required: true
+      required: false
       
   - type: textarea
     id: what-happened

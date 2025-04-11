@@ -30,7 +30,9 @@ body:
       multiple: true
       options:
         - Mobile
-        - Web
+        - Desktop/Laptop
+        - Raspberry Pi (For TV)
+        - Orange Pi (For TV)
         - All Platforms
     validations:
       required: true
