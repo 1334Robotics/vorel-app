@@ -4,8 +4,9 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
-const apiRoutes = require('./routes');
-const { initializeEventCache } = require('./api'); // Add this line near the top of src/server/index.js after importing routes
+const Routes = require('./routes/apex');
+const apiRoutes = require('./routes/api');
+const { initializeEventCache } = require('./helpers/api'); // Add this line near the top of src/server/index.js after importing routes
 
 // Middleware
 app.use(cors());
@@ -23,8 +24,9 @@ app.get('/favicon.ico', (req, res) => {
   res.sendFile(path.join(__dirname, '../../views/public/icon.png'));
 });
 
-// Mount API routes at the root path
-app.use('/', apiRoutes);
+
+app.use('/', Routes);
+app.use('/api', apiRoutes);
 
 // Add 404 handler for all unmatched routes
 app.use((req, res) => {
