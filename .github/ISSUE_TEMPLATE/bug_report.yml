@@ -27,7 +27,7 @@ body:
     id: device
     attributes:
       label: Device
-      description: What device are you using? (For Raspberry Pi / Orange Pi, specify model and OS)
+      description: What device are you using? (For Raspberry Pi / Orange Pi, specify model and OS, For Desktop/Laptop, specify OS)
       placeholder: "iPhone 13, Samsung Galaxy S22, etc. (For Desktop/Laptop, specify OS)"
     validations:
       required: false
