@@ -417,7 +417,7 @@ router.get('/preview', async (req, res) => {
     const ogUrl = `https://vorel.app/?teamKey=${teamNumber}&eventKey=${eventKey}`;
     const ogTitle = `Team ${teamNumber} at ${eventName}`;
     const ogDescription = `View match schedule and results for FRC Team ${teamNumber} at ${eventName}`;
-    const ogImage = 'https://vorel.app/banner-social2.png';
+    const ogImage = 'https://vorel.app/banner-social3.png';
     
     // Render a page with proper OG tags
     res.render('pages/preview', {
