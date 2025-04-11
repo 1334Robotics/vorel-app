@@ -10,7 +10,7 @@ const TBA_BASE_URL = 'https://www.thebluealliance.com/api/v3';
 
 
 // Path to the cache file - events will be stored by year
-const CACHE_DIR = path.join(__dirname, '../../.cache');
+const CACHE_DIR = path.join(__dirname, '../../../.cache');
 const getEventCachePath = (year) => path.join(CACHE_DIR, `tba-events-${year}.json`);
 
 // Make sure cache directory exists
@@ -74,7 +74,7 @@ async function fetchTBAEventDetails(eventKey) {
   return response.data;
 }
 
-// Function to fetch events from TBA and save to cache file
+// Modify the updateEventsCache function to use a temporary file first
 async function updateEventsCache(year = new Date().getFullYear()) {
   try {
     console.log(`Updating TBA events cache for ${year}...`);
@@ -88,8 +88,9 @@ async function updateEventsCache(year = new Date().getFullYear()) {
     
     const events = response.data;
     const cachePath = getEventCachePath(year);
+    const tempCachePath = `${cachePath}.tmp`;
     
-    // Format and save the events to the cache file
+    // Format events as before
     const formattedEvents = events.map(event => {
       const startDate = new Date(event.start_date);
       const endDate = new Date(event.end_date);
@@ -100,27 +101,31 @@ async function updateEventsCache(year = new Date().getFullYear()) {
       
       return {
         key: event.key,
-        name: `${year} ${event.name}`, // Add year in front of event name
+        name: `${year} ${event.name}`,
         city: event.city,
         state_prov: event.state_prov,
         country: event.country,
         location: `${event.city || ''}, ${event.state_prov || ''}`.replace(/(^, )|(, $)/g, ''),
         date: `${dateStr}, ${year}`,
-        searchString: `${year} ${event.name} ${event.city || ''} ${event.state_prov || ''} ${event.country || ''} ${event.key}`.toLowerCase() // Also update search string
+        searchString: `${year} ${event.name} ${event.city || ''} ${event.state_prov || ''} ${event.country || ''} ${event.key}`.toLowerCase()
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
     
-    fs.writeFileSync(cachePath, JSON.stringify({
+    // Write to temporary file first
+    fs.writeFileSync(tempCachePath, JSON.stringify({
       lastUpdated: new Date().toISOString(),
       events: formattedEvents
     }));
+    
+    // Now atomically replace the old cache with the new one
+    fs.renameSync(tempCachePath, cachePath);
     
     console.log(`Cache updated with ${formattedEvents.length} events for ${year}`);
     return formattedEvents;
   } catch (error) {
     console.error(`Error updating events cache for ${year}:`, error.message);
     
-    // Create an empty cache file if one doesn't exist yet
+    // Only create an empty cache file if one doesn't exist at all
     const cachePath = getEventCachePath(year);
     if (!fs.existsSync(cachePath)) {
       fs.writeFileSync(cachePath, JSON.stringify({
@@ -211,18 +216,97 @@ async function fallbackSearchTBAEvents(query, year) {
   }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Initialize cache at startup
-function initializeEventCache() {
+// Add a Map to track the last update time for each year
+const lastUpdateTimes = new Map();
+const nextScheduledUpdates = new Map();
+
+// Replace the manageEventCache function with this enhanced version
+function manageEventCache() {
+  console.log('Managing event cache...');
   const currentYear = new Date().getFullYear();
-  // Initialize cache for current and next year
-  updateEventsCache(currentYear).catch(err => console.error(`Failed to initialize cache for ${currentYear}:`, err.message));
-  updateEventsCache(currentYear + 1).catch(err => console.error(`Failed to initialize cache for ${currentYear + 1}:`, err.message));
+  const now = Date.now();
   
-  // Set up hourly cache updates
+  // Read directory to find all cache files
+  fs.readdir(CACHE_DIR, (err, files) => {
+    if (err) {
+      console.error('Error reading cache directory:', err);
+      return;
+    }
+    
+    // Get all existing event cache files
+    const cacheFiles = files.filter(file => {
+      return file.match(/tba-events-(\d{4})\.json/);
+    });
+    
+    // Find years that need updates based on their update frequency
+    const yearsToUpdate = new Set();
+    
+    // Check current and next year (hourly updates)
+    const hourlyThreshold = now - (60 * 60 * 1000); // 1 hour ago
+    [currentYear, currentYear + 1].forEach(year => {
+      const lastUpdate = lastUpdateTimes.get(year) || 0;
+      if (lastUpdate <= hourlyThreshold) {
+        yearsToUpdate.add(year);
+        // Schedule next update
+        const nextUpdate = new Date(now + (60 * 60 * 1000));
+        nextScheduledUpdates.set(year, nextUpdate);
+      }
+    });
+    
+    // Check years 2025+ (daily updates)
+    const dailyThreshold = now - (24 * 60 * 60 * 1000); // 24 hours ago
+    cacheFiles.forEach(file => {
+      const match = file.match(/tba-events-(\d{4})\.json/);
+      if (match) {
+        const year = parseInt(match[1]);
+        if (year >= 2025 && year !== currentYear && year !== currentYear + 1) {
+          const lastUpdate = lastUpdateTimes.get(year) || 0;
+          if (lastUpdate <= dailyThreshold) {
+            yearsToUpdate.add(year);
+            // Schedule next update
+            const nextUpdate = new Date(now + (24 * 60 * 60 * 1000));
+            nextScheduledUpdates.set(year, nextUpdate);
+          }
+        }
+      }
+    });
+    
+    // Log update schedule for all years
+    const allYears = new Set([...yearsToUpdate, ...lastUpdateTimes.keys()]);
+    allYears.forEach(year => {
+      const nextUpdate = nextScheduledUpdates.get(year);
+      if (nextUpdate) {
+        console.log(`Year ${year}: Next update scheduled for ${nextUpdate.toLocaleString()}`);
+      }
+    });
+    
+    // Update years that need updating
+    if (yearsToUpdate.size > 0) {
+      console.log(`Updating cache for years: ${[...yearsToUpdate].join(', ')}`);
+      yearsToUpdate.forEach(year => {
+        updateEventsCache(year)
+          .then(() => {
+            // Record this update time
+            lastUpdateTimes.set(year, now);
+            console.log(`Updated cache for ${year}, next update at ${nextScheduledUpdates.get(year).toLocaleString()}`);
+          })
+          .catch(err => console.error(`Failed to update cache for ${year}:`, err.message));
+      });
+    } else {
+      console.log('No cache updates needed at this time');
+    }
+  });
+}
+
+// Modify the initializeEventCache function for the improved behavior
+function initializeEventCache() {
+  // Initial cache management
+  manageEventCache();
+  
+  // Set up hourly checks
   setInterval(() => {
-    updateEventsCache(currentYear).catch(err => console.error(`Failed to update cache for ${currentYear}:`, err.message));
-    updateEventsCache(currentYear + 1).catch(err => console.error(`Failed to update cache for ${currentYear + 1}:`, err.message));
-  }, 60 * 60 * 1000); // Update every hour
+    manageEventCache();
+  }, 60 * 60 * 1000); // Check every hour
 }
 
 // Run initialization when module is loaded
