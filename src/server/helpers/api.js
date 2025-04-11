@@ -139,45 +139,88 @@ async function updateEventsCache(year = new Date().getFullYear()) {
   }
 }
 
-// Modified function to read from cached JSON file
-async function searchTBAEvents(query, year = new Date().getFullYear()) {
-  const cachePath = getEventCachePath(year);
-  
+// Modified function to search across all cached years
+async function searchTBAEvents(query, preferredYear = new Date().getFullYear()) {
   try {
-    // Check if cache file exists and is less than 1 hour old
-    let events;
-    
-    if (fs.existsSync(cachePath)) {
-      const cacheData = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-      const lastUpdated = new Date(cacheData.lastUpdated);
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      
-      if (lastUpdated > oneHourAgo) {
-        // Cache is still valid
-        events = cacheData.events;
-      } else {
-        // Cache is outdated, update it
-        events = await updateEventsCache(year);
-      }
-    } else {
-      // Cache doesn't exist, create it
-      events = await updateEventsCache(year);
-    }
-    
-    // Filter events based on the search query
+    // If no query, return empty results
     if (!query || query.length === 0) {
       return [];
     }
     
     const queryLower = query.toLowerCase();
-    return events.filter(event => 
+    
+    // Read all cache files in the directory
+    const files = fs.readdirSync(CACHE_DIR);
+    const cacheFiles = files.filter(file => file.match(/tba-events-(\d{4})\.json/));
+    
+    // If no cache files found, fall back to API for preferred year
+    if (cacheFiles.length === 0) {
+      console.log('No cache files found, falling back to direct API call');
+      return fallbackSearchTBAEvents(query, preferredYear);
+    }
+    
+    // Collect events from all cache files
+    let allEvents = [];
+    let preferredYearEvents = [];
+    
+    for (const file of cacheFiles) {
+      const match = file.match(/tba-events-(\d{4})\.json/);
+      if (match) {
+        const year = parseInt(match[1]);
+        const cachePath = getEventCachePath(year);
+        
+        // Check if we need to update this cache file
+        let events;
+        const cacheData = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+        
+        // Update cache if we're looking at the preferred year and it's outdated
+        // We only check the preferred year to avoid excessive updates
+        if (year === preferredYear) {
+          const lastUpdated = new Date(cacheData.lastUpdated);
+          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+          
+          if (lastUpdated <= oneHourAgo) {
+            // Cache for preferred year is outdated, update it
+            try {
+              events = await updateEventsCache(year);
+              preferredYearEvents = events;
+            } catch (error) {
+              console.error(`Error updating cache for ${year}:`, error.message);
+              events = cacheData.events;
+            }
+          } else {
+            events = cacheData.events;
+            preferredYearEvents = events;
+          }
+        } else {
+          // For other years, just use the cache as-is
+          events = cacheData.events;
+        }
+        
+        // Add events to our collection
+        allEvents = [...allEvents, ...events];
+      }
+    }
+    
+    // First search in the preferred year
+    const preferredResults = preferredYearEvents.filter(event => 
       event.searchString.includes(queryLower)
     );
+    
+    // Then search in all years
+    const otherResults = allEvents.filter(event => 
+      event.searchString.includes(queryLower) && 
+      !preferredResults.some(pe => pe.key === event.key)
+    );
+    
+    // Return preferred year results first, then other matching results
+    return [...preferredResults, ...otherResults];
+    
   } catch (error) {
-    console.error(`Error searching events from cache for ${year}:`, error.message);
-    // Fallback to direct API call if cache fails
+    console.error(`Error searching events from cache:`, error.message);
+    // Fallback to direct API call for the preferred year if cache fails
     console.log('Falling back to direct TBA API call');
-    return fallbackSearchTBAEvents(query, year);
+    return fallbackSearchTBAEvents(query, preferredYear);
   }
 }
 
@@ -265,29 +308,34 @@ function manageEventCache() {
           return;
         }
         
+        // Skip ALL years before 2025, regardless of recency
+        if (year < 2025) {
+          yearsToSkip.add(year);
+          return;
+        }
+        
         // Check if year is too old (more than 2 years before current year)
         if (year < currentYear - 2) {
           yearsToSkip.add(year);
           return;
         }
         
-        // For other years that are recent enough, do daily updates
-        if (year >= 2025) {
-          const lastUpdate = lastUpdateTimes.get(year) || 0;
-          const dailyThreshold = now - (24 * 60 * 60 * 1000); // 24 hours ago
-          
-          if (lastUpdate <= dailyThreshold) {
-            yearsToUpdate.add(year);
-            // Schedule next update
-            const nextUpdate = new Date(now + (24 * 60 * 60 * 1000));
-            nextScheduledUpdates.set(year, nextUpdate);
-          }
+        // For years 2025+ that are recent enough, do daily updates
+        const lastUpdate = lastUpdateTimes.get(year) || 0;
+        const dailyThreshold = now - (24 * 60 * 60 * 1000); // 24 hours ago
+        
+        if (lastUpdate <= dailyThreshold) {
+          yearsToUpdate.add(year);
+          // Schedule next update
+          const nextUpdate = new Date(now + (24 * 60 * 60 * 1000));
+          nextScheduledUpdates.set(year, nextUpdate);
         }
       }
     });
     
-    // Check for missing cache files for recent years
-    for (let year = currentYear - 2; year <= currentYear + 1; year++) {
+    // Check for missing cache files ONLY for years 2025+ and current/next
+    // This prevents creating cache for pre-2025 years
+    for (let year = Math.max(2025, currentYear - 2); year <= currentYear + 1; year++) {
       const cachePath = getEventCachePath(year);
       if (!fs.existsSync(cachePath)) {
         yearsToUpdate.add(year);
