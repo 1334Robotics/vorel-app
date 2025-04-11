@@ -240,6 +240,7 @@ function manageEventCache() {
     
     // Find years that need updates based on their update frequency
     const yearsToUpdate = new Set();
+    const yearsToSkip = new Set();
     
     // Check current and next year (hourly updates)
     const hourlyThreshold = now - (60 * 60 * 1000); // 1 hour ago
@@ -253,14 +254,28 @@ function manageEventCache() {
       }
     });
     
-    // Check years 2025+ (daily updates)
-    const dailyThreshold = now - (24 * 60 * 60 * 1000); // 24 hours ago
+    // Check existing cache files
     cacheFiles.forEach(file => {
       const match = file.match(/tba-events-(\d{4})\.json/);
       if (match) {
         const year = parseInt(match[1]);
-        if (year >= 2025 && year !== currentYear && year !== currentYear + 1) {
+        
+        // Skip if it's current or next year (already handled above)
+        if (year === currentYear || year === currentYear + 1) {
+          return;
+        }
+        
+        // Check if year is too old (more than 2 years before current year)
+        if (year < currentYear - 2) {
+          yearsToSkip.add(year);
+          return;
+        }
+        
+        // For other years that are recent enough, do daily updates
+        if (year >= 2025) {
           const lastUpdate = lastUpdateTimes.get(year) || 0;
+          const dailyThreshold = now - (24 * 60 * 60 * 1000); // 24 hours ago
+          
           if (lastUpdate <= dailyThreshold) {
             yearsToUpdate.add(year);
             // Schedule next update
@@ -271,12 +286,25 @@ function manageEventCache() {
       }
     });
     
+    // Check for missing cache files for recent years
+    for (let year = currentYear - 2; year <= currentYear + 1; year++) {
+      const cachePath = getEventCachePath(year);
+      if (!fs.existsSync(cachePath)) {
+        yearsToUpdate.add(year);
+        console.log(`Creating initial cache for ${year}`);
+      }
+    }
+    
     // Log update schedule for all years
     const allYears = new Set([...yearsToUpdate, ...lastUpdateTimes.keys()]);
     allYears.forEach(year => {
-      const nextUpdate = nextScheduledUpdates.get(year);
-      if (nextUpdate) {
-        console.log(`Year ${year}: Next update scheduled for ${nextUpdate.toLocaleString()}`);
+      if (yearsToSkip.has(year)) {
+        console.log(`Year ${year}: Skipping updates (more than 2 years old)`);
+      } else {
+        const nextUpdate = nextScheduledUpdates.get(year);
+        if (nextUpdate) {
+          console.log(`Year ${year}: Next update scheduled for ${nextUpdate.toLocaleString()}`);
+        }
       }
     });
     
@@ -288,7 +316,7 @@ function manageEventCache() {
           .then(() => {
             // Record this update time
             lastUpdateTimes.set(year, now);
-            console.log(`Updated cache for ${year}, next update at ${nextScheduledUpdates.get(year).toLocaleString()}`);
+            console.log(`Updated cache for ${year}, next update at ${nextScheduledUpdates.get(year)?.toLocaleString() || 'never'}`);
           })
           .catch(err => console.error(`Failed to update cache for ${year}:`, err.message));
       });
