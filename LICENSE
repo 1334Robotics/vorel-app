@@ -1,4 +1,4 @@
-                    GNU GENERAL PUBLIC LICENSE
+GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
  Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
@@ -653,9 +653,9 @@ Also add information on how to contact you by electronic and paper mail.
 notice like this when it starts in an interactive mode:
 
     Vorel  Copyright (C) 2025 1334Robotics
-    This program comes with ABSOLUTELY NO WARRANT.
+    This program comes with ABSOLUTELY NO WARRANTY.
     This is free software, and you are welcome to redistribute it
-    under certain conditions.
+    under certain conditions. TO VIEW THE LICENSE VISIT OUR [GITHUB](https://github.com/1334Robotics/vorel-app/blob/main/LICENSE)
 
 The hypothetical commands `show w' and `show c' should show the appropriate
 parts of the General Public License.  Of course, your program's commands
