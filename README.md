@@ -54,7 +54,7 @@ A Public web service that displays match schedules and results for FRC teams at 
 
 
 
->[!NOTE]
+>[!IMPORTANT]
 > YOU DO NOT HAVE TO DO THIS!
 > You can visit https://vorel.app and our service is ready to serve you
 
