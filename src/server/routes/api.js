@@ -150,13 +150,12 @@ router.get("/events/search", async (req, res) => {
     const currentYear = new Date().getFullYear();
 
     // Search events from current and next year
-    const [currentYearEvents, nextYearEvents] = await Promise.all([
-      searchTBAEvents(query, currentYear),
-      searchTBAEvents(query, currentYear + 1),
+    const [currentYearEvents] = await Promise.all([
+      searchTBAEvents(query, currentYear)
     ]);
 
     // Combine and limit results
-    const combinedEvents = [...nextYearEvents, ...currentYearEvents];
+    const combinedEvents = [...currentYearEvents];
 
     // Return top 10 results
     res.json(combinedEvents.slice(0, 10));
