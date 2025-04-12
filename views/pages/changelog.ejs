@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog | Vorel - FRC Match Schedule & Results Tracker</title>
+  
+  <!-- Open Graph  -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://vorel.app/changelog">
+  <meta property="og:title" content="Changelog | Vorel - FRC Match Schedule & Results Tracker">
+  <meta property="og:description" content="View the latest changes and improvements to Vorel from our GitHub repository">
+  <meta property="og:image" content="https://vorel.app/banner.png">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://vorel.app/changelog">
+  <meta name="twitter:title" content="Changelog | Vorel - FRC Match Schedule & Results Tracker">
+  <meta name="twitter:description" content="View the latest changes and improvements to Vorel from our GitHub repository">
+  <meta name="twitter:image" content="https://vorel.app/banner.png">
+  
+  <%- include('../partials/styles') %>
+  <%- include('../style/style-home') %>
+  <style>
+    .container {
+        min-height: auto;
+    }
+    .changelog-section {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    /* Loading animation styles - fixed position to prevent layout shifts */
+    .refresh-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .refresh-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    
+    .refresh-spinner {
+      width: 60px;
+      height: 60px;
+      transform-style: preserve-3d;
+      transform: rotateX(45deg) rotateZ(45deg);
+      animation: cube-spin 2s infinite linear;
+    }
+    
+    @keyframes cube-spin {
+      0% {
+        transform: rotateX(45deg) rotateY(0) rotateZ(45deg);
+      }
+      100% {
+        transform: rotateX(45deg) rotateY(360deg) rotateZ(45deg);
+      }
+    }
+    
+    .refresh-spinner .cube-face {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      background: rgba(0, 188, 212, 0.7);
+      border: 2px solid #008ba3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    .refresh-spinner .front {
+      transform: translateZ(30px);
+    }
+    
+    .refresh-spinner .back {
+      transform: rotateY(180deg) translateZ(30px);
+    }
+    
+    .refresh-spinner .right {
+      transform: rotateY(90deg) translateZ(30px);
+    }
+    
+    .refresh-spinner .left {
+      transform: rotateY(-90deg) translateZ(30px);
+    }
+    
+    .refresh-spinner .top {
+      transform: rotateX(90deg) translateZ(30px);
+    }
+    
+    .refresh-spinner .bottom {
+      transform: rotateX(-90deg) translateZ(30px);
+    }
+    
+    /* Loading message styling */
+    .loading-message {
+      text-align: center;
+      color: var(--text-secondary);
+      margin-top: 20px;
+      font-size: 1.1em;
+    }
+    
+    /* Version card styling */
+    .version-card {
+      background-color: var(--bg-card);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .version-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .version-title {
+      font-size: 1.3em;
+      font-weight: 600;
+    }
+    
+    .version-date {
+      color: var(--text-secondary);
+    }
+    
+    .changelog-category {
+      margin-top: 15px;
+    }
+    
+    .category-title {
+      font-size: 1.1em;
+      font-weight: 600;
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .category-features {
+      color: var(--primary);
+    }
+    
+    .change-list {
+      padding-left: 25px;
+      margin: 10px 0;
+    }
+    
+    .change-list li {
+      margin-bottom: 8px;
+    }
+    
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 20px;
+      color: var(--primary);
+      text-decoration: none;
+    }
+    
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="main-content">
+    <div class="hero">
+      <div class="container">
+        <img src="/banner.png" alt="Vorel App Banner" class="hero-logo" />
+        <h1 class="hero-title">Changelog</h1>
+        <p class="hero-subtitle">
+          History of updates and improvements to the Vorel application
+        </p>
+      </div>
+    </div>
+    
+    <div class="changelog-section">
+      <a href="/" class="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 11H7.83L13.42 5.41L12 4L4 12L12 20L13.41 18.59L7.83 13H20V11Z" fill="currentColor"/>
+        </svg>
+        Back to Home
+      </a>
+      
+      <!-- Loading animation -->
+      <div id="loading-container" class="refresh-overlay">
+        <div>
+          <div class="refresh-spinner">
+            <div class="cube-face front"></div>
+            <div class="cube-face back"></div>
+            <div class="cube-face right"></div>
+            <div class="cube-face left"></div>
+            <div class="cube-face top"></div>
+            <div class="cube-face bottom"></div>
+          </div>
+          <div class="loading-message">Loading changelog data...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer class="footer">
+    <div class="container">
+      <img src="/banner2.png" alt="Vorel App Presented By 1334 Banner" class="footer-logo" />
+      <div class="footer-subtitle">FRC Match Schedule & Results Tracker</div>
+      <div class="footer-info">Data provided by FIRST Nexus API & The Blue Alliance APIs</div>
+      <div class="footer-copyright">Vorel App © 2025 • <a href="https://github.com/1334Robotics/vorel-app">GitHub</a></div>
+    </div>
+  </footer>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const changelogSection = document.querySelector('.changelog-section');
+      const backLink = document.querySelector('.back-link');
+      const loadingContainer = document.getElementById('loading-container');
+      
+      try {
+        // Fetch the repository's releases (tags)
+        const releasesResponse = await fetch('https://api.github.com/repos/1334Robotics/vorel-app/releases');
+        const releases = await releasesResponse.json();
+        
+        // Fetch commits
+        const commitsResponse = await fetch('https://api.github.com/repos/1334Robotics/vorel-app/commits?per_page=30');
+        const commits = await commitsResponse.json();
+        
+        // Remove loading indicator
+        loadingContainer.remove();
+        
+        // If we have releases/tags, organize by version
+        if (releases && releases.length > 0) {
+          // Group commits by release
+          releases.forEach(release => {
+            const versionCard = createVersionCard(
+              release.name || release.tag_name,
+              new Date(release.published_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+              release.body,
+              []
+            );
+            changelogSection.appendChild(versionCard);
+          });
+        } else {
+          // No releases, just show recent commits grouped by month
+          const commitsByMonth = groupCommitsByMonth(commits);
+          
+          for (const [monthYear, monthCommits] of Object.entries(commitsByMonth)) {
+            const versionCard = createVersionCard(
+              monthYear,
+              '',
+              null,
+              monthCommits
+            );
+            changelogSection.appendChild(versionCard);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching GitHub data:', error);
+        
+        // Replace loading indicator with error message
+        loadingContainer.innerHTML = `
+          <div style="text-align: center; padding: 20px;">
+            <p>Error loading changelog data. Please try again later.</p>
+            <p>If the problem persists, view our commits on 
+            <a href="https://github.com/1334Robotics/vorel-app/commits/main" target="_blank">GitHub</a>.</p>
+          </div>
+        `;
+      }
+    });
+    
+    // The rest of your JavaScript functions remain unchanged
+    function createVersionCard(title, date, description, commits) {
+      const card = document.createElement('div');
+      card.className = 'version-card';
+      
+      // Header with version title and date
+      const header = document.createElement('div');
+      header.className = 'version-header';
+      
+      const titleEl = document.createElement('div');
+      titleEl.className = 'version-title';
+      titleEl.textContent = title;
+      
+      const dateEl = document.createElement('div');
+      dateEl.className = 'version-date';
+      dateEl.textContent = date;
+      
+      header.appendChild(titleEl);
+      if (date) header.appendChild(dateEl);
+      card.appendChild(header);
+      
+      // If we have a description (from release notes)
+      if (description) {
+        const descEl = document.createElement('div');
+        descEl.className = 'changelog-category';
+        descEl.innerHTML = `<div class="category-description">${formatDescription(description)}</div>`;
+        card.appendChild(descEl);
+      }
+      
+      // If we have commits
+      if (commits && commits.length > 0) {
+        const commitsEl = document.createElement('div');
+        commitsEl.className = 'changelog-category';
+        
+        const titleEl = document.createElement('div');
+        titleEl.className = 'category-title category-features';
+        titleEl.textContent = 'Commits';
+        commitsEl.appendChild(titleEl);
+        
+        const listEl = document.createElement('ul');
+        listEl.className = 'change-list';
+        
+        commits.forEach(commit => {
+          const li = document.createElement('li');
+          
+          // Create commit message with link
+          const commitLink = document.createElement('a');
+          commitLink.href = commit.html_url;
+          commitLink.target = '_blank';
+          commitLink.textContent = commit.commit.message.split('\n')[0]; // First line of commit message
+          commitLink.style.color = 'inherit';
+          commitLink.style.textDecoration = 'none';
+          commitLink.style.borderBottom = '1px dotted var(--text-secondary)';
+          
+          li.appendChild(commitLink);
+          
+          // Add author and date info
+          const commitInfo = document.createElement('span');
+          commitInfo.style.fontSize = '0.85em';
+          commitInfo.style.color = 'var(--text-secondary)';
+          commitInfo.style.marginLeft = '5px';
+          
+          // Format date as "MMM D"
+          const commitDate = new Date(commit.commit.author.date);
+          const formattedDate = commitDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          
+          commitInfo.textContent = `by ${commit.commit.author.name} on ${formattedDate}`;
+          li.appendChild(commitInfo);
+          
+          listEl.appendChild(li);
+        });
+        
+        commitsEl.appendChild(listEl);
+        card.appendChild(commitsEl);
+      }
+      
+      return card;
+    }
+    
+    function formatDescription(description) {
+      // Convert markdown-style lists to HTML
+      return description
+        .replace(/\r\n/g, '\n')
+        .replace(/\n\n/g, '<br><br>')
+        .replace(/\n- /g, '<br>• ')
+        .replace(/\n\* /g, '<br>• ');
+    }
+    
+    function groupCommitsByMonth(commits) {
+      const groups = {};
+      
+      commits.forEach(commit => {
+        const date = new Date(commit.commit.author.date);
+        const monthYear = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        
+        if (!groups[monthYear]) {
+          groups[monthYear] = [];
+        }
+        
+        groups[monthYear].push(commit);
+      });
+      
+      return groups;
+    }
+  </script>
+</body>
+</html>
