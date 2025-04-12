@@ -446,6 +446,10 @@ router.get('/api/health', (req, res) => {
   res.status(200).send('OK');
 });
 
+// Add this route for the changelog page
+router.get('/changelog', (req, res) => {
+  res.render('pages/changelog');
+});
 
 
 module.exports = router;
