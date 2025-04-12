@@ -219,7 +219,7 @@
         currentDataHash = data.hash;
         const shortHash = currentDataHash.substring(0, 8);
         const lastChecked = getSyncedTime().toLocaleTimeString();
-        updateStatus.innerHTML = 'Data provided by FIRST Nexus & TBA APIs • Last updated: ' + getSyncedTime().toLocaleString() + ' • Last checked: ' + lastChecked;
+        updateStatus.innerHTML = 'Data provided by FIRST Nexus & TBA APIs' + ' • Last checked: ' + lastChecked;
         hashDisplay.innerHTML = 'Hash: ' + shortHash;
         updateTimer = setTimeout(checkForUpdates, checkInterval);
       }
