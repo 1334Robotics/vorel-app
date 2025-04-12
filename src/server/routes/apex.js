@@ -26,6 +26,17 @@ router.get('/', async (req, res) => {
   // Format team number (remove "frc" prefix if present)
   const formattedTeamKey = teamKey.startsWith('frc') ? teamKey.substring(3) : teamKey;
   
+  // Fetch event name from TBA before main data retrieval
+  let eventName = eventKey; // Default to eventKey if TBA fetch fails
+  try {
+    const tbaEventDetails = await fetchTBAEventDetails(eventKey);
+    if (tbaEventDetails && tbaEventDetails.name) {
+      eventName = tbaEventDetails.name;
+    }
+  } catch (error) {
+    console.error('Error fetching event name from TBA:', error);
+  }
+  
   try {
     // Load match data
     const eventData = await fetchEventDetails(eventKey);
@@ -33,16 +44,7 @@ router.get('/', async (req, res) => {
       return res.status(404).json({ error: 'Event not found' });
     }
     
-    // Fetch event name from TBA
-    let eventName = eventKey; // Default to eventKey if TBA fetch fails
-    try {
-      const tbaEventDetails = await fetchTBAEventDetails(eventKey);
-      if (tbaEventDetails && tbaEventDetails.name) {
-        eventName = tbaEventDetails.name;
-      }
-    } catch (error) {
-      console.error('Error fetching event name from TBA:', error);
-    }
+    // We already fetched the event name above, no need to fetch it again
     
     // Fetch team ranking data from TBA
     const formattedTBATeamKey = `frc${formattedTeamKey}`;
@@ -202,7 +204,7 @@ router.get('/', async (req, res) => {
       teamKey: teamKey || '',
       formattedTeamKey: teamKey ? (teamKey.startsWith('frc') ? teamKey.substring(3) : teamKey) : '',
       eventKey: eventKey || '',
-      eventName: eventKey || 'Unknown Event',
+      eventName, // Use the already fetched event name
       matchGroups: {},
       completedMatches: [],
       nowQueuing: null,
@@ -231,6 +233,17 @@ router.get('/embed', async (req, res) => {
   // Set display options
   const containerHeight = parseInt(height) > 0 ? parseInt(height) : 600;
   
+  // Fetch event name from TBA before main data retrieval
+  let eventName = eventKey; // Default to eventKey if TBA fetch fails
+  try {
+    const tbaEventDetails = await fetchTBAEventDetails(eventKey);
+    if (tbaEventDetails && tbaEventDetails.name) {
+      eventName = tbaEventDetails.name;
+    }
+  } catch (error) {
+    console.error('Error fetching event name from TBA:', error);
+  }
+  
   try {
     // Load match data
     const eventData = await fetchEventDetails(eventKey);
@@ -238,16 +251,7 @@ router.get('/embed', async (req, res) => {
       return res.status(404).json({ error: 'Event not found' });
     }
     
-    // Fetch event name from TBA
-    let eventName = eventKey; // Default to eventKey if TBA fetch fails
-    try {
-      const tbaEventDetails = await fetchTBAEventDetails(eventKey);
-      if (tbaEventDetails && tbaEventDetails.name) {
-        eventName = tbaEventDetails.name;
-      }
-    } catch (error) {
-      console.error('Error fetching event name from TBA:', error);
-    }
+    // We already fetched the event name above, no need to fetch it again
     
     // Fetch team ranking data from TBA
     const formattedTBATeamKey = `frc${formattedTeamKey}`;
@@ -362,7 +366,7 @@ router.get('/embed', async (req, res) => {
       teamKey,
       formattedTeamKey,
       eventKey,
-      eventName: eventKey || 'Unknown Event',
+      eventName, // Use the already fetched event name instead of falling back to eventKey
       matchGroups: {},
       completedMatches: [],
       nowQueuing: null,
