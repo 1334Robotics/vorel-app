@@ -61,23 +61,26 @@
     </div>
     
     <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
-      <div class="error-message">
-        <strong>Error:</strong> <%= errorMessage %>
-      </div>
-    <% } %>
-
-    <div class="content">
-      <% if (Object.keys(matchGroups).length === 0 && completedMatches.length === 0) { %>
-        <div class="no-matches">
-          <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M8 15C8.91221 16.2144 10.3645 17 12.0004 17C13.6362 17 15.0885 16.2144 16.0007 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M9 10C9 10.5523 8.55228 11 8 11C7.44772 11 7 10.5523 7 10C7 9.44772 7.44772 9 8 9C8.55228 9 9 9.44772 9 10Z" fill="currentColor"/>
-            <path d="M17 10C17 10.5523 16.5523 11 16 11C15.4477 11 15 10.5523 15 10C15 9.44772 15.4477 9 16 9C16.5523 9 17 9.44772 17 10Z" fill="currentColor"/>
-          </svg>
-          <p>No matches found for team <%= formattedTeamKey %></p>
+      <div class="full-cover-error">
+        <div class="error-container">
+          <img src="/banner2.png" alt="Vorel App Logo" class="error-logo">
+          <h2><%= eventName %> has not started yet or there has been an issue</h2>
+          <p>Please contact the website owner for assistance</p>
+          <p class="status-code">Status code: <%= errorMessage.includes('status: ') ? errorMessage.match(/status: (\d+)/)[1] : 'Unknown' %></p>
+          <p class="error-details"><%= errorMessage %></p>
         </div>
-      <% } else { %>
+      </div>
+    <% } else if (Object.keys(matchGroups).length === 0 && completedMatches.length === 0) { %>
+      <div class="full-cover-error">
+        <div class="error-container">
+          <img src="/banner2.png" alt="Vorel App Logo" class="error-logo">
+          <h2><%= eventName %> has not started yet</h2>
+          <p>No matches found for team <%= formattedTeamKey %></p>
+          <p>Please check back later or contact the website owner if this persists</p>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="content">
         <!-- Active/Upcoming Matches -->
         <% Object.keys(matchGroups).forEach(groupType => { %>
           <%- include('../partials/matchGroup', { 
@@ -99,8 +102,8 @@
             isEmbedded: true
           }) %>
         <% } %>
-      <% } %>
-    </div>
+      </div>
+    <% } %>
     
     <%- include('../partials/footer', { eventKey }) %>
   </div>
