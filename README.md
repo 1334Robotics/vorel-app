@@ -2,7 +2,7 @@
 <a href="https://vorel.app">
 <img
 width=400
-src="views/public/social-banner3.png"
+src="https://vorel.app/social-banner3.png"
 alt="Vorel Banner"/>
 </a>
 </p>
