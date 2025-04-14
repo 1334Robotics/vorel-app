@@ -538,5 +538,659 @@
       <path d="M3 3h7v7H3V3zm2 2v3h3V5H5zm9-2h7v7h-7V3zm2 2v3h3V5h-3zM3 14h7v7H3v-7zm2 2v3h3v-3H5zm13-2v3h4v-3h-4zm-6 0v7h2v-7h-2zm4 7v-2h-2v2h2z"/>
     </svg>
   </div>
+
+  <!-- Twitch Stream Container -->
+<div id="twitch-stream-container" class="twitch-stream-container hidden">
+  <div class="twitch-header">
+    <div class="twitch-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11.64 5.93H13.07V10.21H11.64M15.57 5.93H17V10.21H15.57M7 2L3.43 5.57V18.43H7.71V22L11.29 18.43H14.14L20.57 12V2M19.14 11.29L16.29 14.14H13.43L11.14 16.43V14.14H7.71V3.43H19.14Z" fill="#6441a5"/>
+      </svg>
+      <span>Event Stream</span>
+    </div>
+    <div class="twitch-controls">
+      <button id="twitch-settings-toggle" class="twitch-button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" fill="currentColor"/>
+        </svg>
+      </button>
+      <button id="twitch-close" class="twitch-button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  
+  <div id="twitch-settings-panel" class="twitch-settings-panel hidden">
+    <div class="settings-group">
+      <label>
+        <input type="checkbox" id="twitch-always-show"> 
+        Always show stream
+      </label>
+    </div>
+    <div class="settings-group">
+      <label>Keep open after match completion:</label>
+      <select id="twitch-timeout">
+        <option value="0">Close immediately</option>
+        <option value="60" selected>1 minute</option>
+        <option value="300">5 minutes</option>
+        <option value="600">10 minutes</option>
+        <option value="-1">Until next match</option>
+      </select>
+    </div>
+    <div class="settings-group">
+      <label>Twitch channel:</label>
+      <input type="text" id="twitch-channel" placeholder="firstinspires">
+      <button id="twitch-save" class="twitch-save-btn">Save</button>
+    </div>
+  </div>
+  
+  <div id="twitch-stream-placeholder" class="twitch-stream-placeholder">
+    <div class="twitch-placeholder-content">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11.64 5.93H13.07V10.21H11.64M15.57 5.93H17V10.21H15.57M7 2L3.43 5.57V18.43H7.71V22L11.29 18.43H14.14L20.57 12V2M19.14 11.29L16.29 14.14H13.43L11.14 16.43V14.14H7.71V3.43H19.14Z" fill="#6441a5"/>
+      </svg>
+      <p>Click to load Twitch stream</p>
+    </div>
+  </div>
+  
+  <div id="twitch-embed" class="twitch-embed"></div>
+</div>
+
+<!-- Toggle Button -->
+<div id="twitch-toggle" class="twitch-toggle">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M11.64 5.93H13.07V10.21H11.64M15.57 5.93H17V10.21H15.57M7 2L3.43 5.57V18.43H7.71V22L11.29 18.43H14.14L20.57 12V2M19.14 11.29L16.29 14.14H13.43L11.14 16.43V14.14H7.71V3.43H19.14Z" fill="#6441a5"/>
+  </svg>
+</div>
+
+<!-- Update Twitch Stream CSS and Script -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Define variables
+    let streamVisible = false;
+    let streamLoaded = false;
+    let streamTimeout = null;
+    const isMobile = /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const STORAGE_PREFIX = 'vorel_twitch_';
+    
+    // Load settings from localStorage
+    const twitchSettings = {
+      alwaysShow: localStorage.getItem(`${STORAGE_PREFIX}always_show`) === 'true',
+      timeout: parseInt(localStorage.getItem(`${STORAGE_PREFIX}timeout`) || '60'),
+      channel: localStorage.getItem(`${STORAGE_PREFIX}channel`) || 'firstinspires'
+    };
+    
+    // Elements
+    const twitchContainer = document.getElementById('twitch-stream-container');
+    const twitchToggle = document.getElementById('twitch-toggle');
+    const twitchClose = document.getElementById('twitch-close');
+    const twitchEmbed = document.getElementById('twitch-embed');
+    const twitchPlaceholder = document.getElementById('twitch-stream-placeholder');
+    const settingsToggle = document.getElementById('twitch-settings-toggle');
+    const settingsPanel = document.getElementById('twitch-settings-panel');
+    const alwaysShowCheckbox = document.getElementById('twitch-always-show');
+    const timeoutSelect = document.getElementById('twitch-timeout');
+    const channelInput = document.getElementById('twitch-channel');
+    const saveButton = document.getElementById('twitch-save');
+    
+    // Get page elements
+    const mainContainer = document.querySelector('.main-container');
+    const pageContainer = document.querySelector('.container');
+    const header = document.querySelector('.header');
+    const eventInfo = document.querySelector('.event-info');
+    
+    // Initialize settings in UI
+    alwaysShowCheckbox.checked = twitchSettings.alwaysShow;
+    timeoutSelect.value = twitchSettings.timeout;
+    channelInput.value = twitchSettings.channel;
+    
+    // Only show Twitch elements on desktop
+    if (isMobile) {
+      twitchToggle.classList.add('hidden');
+      return;
+    } else {
+      twitchToggle.classList.remove('hidden');
+    }
+    
+    // Initialize stream if always show is enabled
+    if (twitchSettings.alwaysShow) {
+      setTimeout(() => showStream(), 1000);
+    }
+    
+    // Event listeners
+    twitchToggle.addEventListener('click', toggleStream);
+    twitchClose.addEventListener('click', hideStream);
+    twitchPlaceholder.addEventListener('click', loadAndShowTwitch);
+    settingsToggle.addEventListener('click', toggleSettings);
+    saveButton.addEventListener('click', saveSettings);
+    
+    // Handle checkbox changes
+    alwaysShowCheckbox.addEventListener('change', function() {
+      twitchSettings.alwaysShow = this.checked;
+      localStorage.setItem(`${STORAGE_PREFIX}always_show`, this.checked);
+    });
+    
+    // Handle timeout selection
+    timeoutSelect.addEventListener('change', function() {
+      twitchSettings.timeout = parseInt(this.value);
+      localStorage.setItem(`${STORAGE_PREFIX}timeout`, this.value);
+    });
+    
+    // Functions
+    function toggleStream() {
+      if (streamVisible) {
+        hideStream();
+      } else {
+        showStream();
+      }
+    }
+    
+    // Update the showStream and hideStream functions to handle QR code visibility
+    function showStream() {
+      // Show the stream container
+      twitchContainer.classList.remove('hidden');
+      twitchToggle.classList.add('active');
+      streamVisible = true;
+      
+      // Apply fixed layout mode to entire page
+      document.body.classList.add('with-stream');
+      
+      // Load Twitch if not already loaded
+      if (!streamLoaded) {
+        // Just show placeholder initially
+        twitchPlaceholder.style.display = 'flex';
+        twitchEmbed.style.display = 'none';
+      }
+      
+      // Move team info to top when stream is visible
+      reorderContent(true);
+      
+      // Hide QR code when stream is shown
+      const qrCodeContainer = document.getElementById('qr-code-container');
+      const qrReopen = document.getElementById('qr-code-reopen');
+      
+      // Store current QR state before hiding it
+      if (qrCodeContainer && !qrCodeContainer.classList.contains('hidden')) {
+        sessionStorage.setItem('qr_was_visible', 'true');
+        qrCodeContainer.classList.add('hidden');
+      }
+      
+      // Also hide the reopen button if visible
+      if (qrReopen && qrReopen.classList.contains('visible')) {
+        qrReopen.classList.remove('visible');
+        sessionStorage.setItem('qr_reopen_visible', 'true');
+      }
+    }
+
+    function hideStream() {
+      // Hide the stream container
+      twitchContainer.classList.add('hidden');
+      twitchToggle.classList.remove('active');
+      streamVisible = false;
+      
+      // Remove fixed layout mode from page
+      document.body.classList.remove('with-stream');
+      
+      // Restore original content order
+      reorderContent(false);
+      
+      // Clear any auto-close timeouts
+      if (streamTimeout) {
+        clearTimeout(streamTimeout);
+        streamTimeout = null;
+      }
+      
+      // Restore QR code visibility if it was visible before
+      const qrCodeContainer = document.getElementById('qr-code-container');
+      const qrReopen = document.getElementById('qr-code-reopen');
+      const wasQrVisible = sessionStorage.getItem('qr_was_visible') === 'true';
+      const wasReopenVisible = sessionStorage.getItem('qr_reopen_visible') === 'true';
+      
+      // Don't restore if user manually dismissed the QR code
+      const qrDismissed = localStorage.getItem('qrDismissed') === 'true';
+      
+      if (wasQrVisible && !qrDismissed) {
+        qrCodeContainer.classList.remove('hidden');
+        sessionStorage.removeItem('qr_was_visible');
+      } else if (wasReopenVisible && !qrCodeContainer.classList.contains('hidden')) {
+        qrReopen.classList.add('visible');
+        sessionStorage.removeItem('qr_reopen_visible');
+      }
+    }
+    
+    // Function to reorder content for better layout with stream
+    function reorderContent(streamActive) {
+      const matchesColumn = document.querySelector('.matches-column');
+      const infoColumn = document.querySelector('.info-column');
+      
+      if (streamActive && matchesColumn && infoColumn) {
+        // Move team info/ranking above matches when stream is active
+        mainContainer.insertBefore(infoColumn, matchesColumn);
+      } else if (!streamActive && matchesColumn && infoColumn) {
+        // Restore original order (matches column first, then info column)
+        mainContainer.insertBefore(matchesColumn, infoColumn);
+      }
+    }
+    
+    function loadAndShowTwitch() {
+      // Properly hide placeholder and show embed
+      twitchPlaceholder.style.display = 'none';
+      twitchEmbed.style.display = 'block';
+      
+      // Load Twitch embed if not already loaded
+      if (!streamLoaded) {
+        loadTwitchEmbed();
+        streamLoaded = true;
+      }
+    }
+    
+    function loadTwitchEmbed() {
+      // Clean any previous embed
+      twitchEmbed.innerHTML = '';
+      
+      // Add Twitch embed script
+      const script = document.createElement('script');
+      script.src = "https://embed.twitch.tv/embed/v1.js";
+      
+      script.onload = function() {
+        new Twitch.Embed("twitch-embed", {
+          width: "100%",
+          height: "100%",
+          channel: twitchSettings.channel,
+          layout: "video",
+          autoplay: true,
+          parent: [window.location.hostname]
+        });
+      };
+      
+      document.body.appendChild(script);
+    }
+    
+    function toggleSettings() {
+      settingsPanel.classList.toggle('hidden');
+    }
+    
+    function saveSettings() {
+      const newChannel = channelInput.value.trim();
+      
+      if (newChannel && newChannel !== twitchSettings.channel) {
+        twitchSettings.channel = newChannel;
+        localStorage.setItem(`${STORAGE_PREFIX}channel`, newChannel);
+        
+        // Reload the embed if it was loaded before
+        if (streamLoaded) {
+          loadTwitchEmbed();
+        }
+      }
+      
+      // Hide settings panel
+      settingsPanel.classList.add('hidden');
+    }
+    
+    // Auto-show stream when specific match conditions occur
+    function checkMatchStateForStream() {
+      // Find match that's "On field"
+      const matchesOnField = document.querySelectorAll('.match-card[data-status="On field"]');
+      
+      // Find if alliance selection is happening (look for specific text)
+      const allianceSelection = document.querySelector('.match-card[data-label*="Alliance Selection"]');
+      
+      // Check if next match is queuing
+      const nextMatchQueuing = document.querySelector('.next-match-details.queuing');
+      
+      const shouldShowStream = matchesOnField.length > 0 || allianceSelection || nextMatchQueuing;
+      
+      if (shouldShowStream && !streamVisible) {
+        showStream();
+      }
+      
+      // Handle completed matches
+      if (matchesOnField.length === 0 && !allianceSelection && !nextMatchQueuing && !twitchSettings.alwaysShow) {
+        // If stream is visible and no ongoing activity, start timeout to hide
+        if (streamVisible && !streamTimeout && twitchSettings.timeout > 0) {
+          streamTimeout = setTimeout(() => {
+            hideStream();
+            streamTimeout = null;
+          }, twitchSettings.timeout * 1000);
+        }
+      }
+    }
+    
+    // Check match states initially
+    setTimeout(checkMatchStateForStream, 2000);
+    
+    // Periodically check match states (every 10 seconds)
+    setInterval(checkMatchStateForStream, 10000);
+    
+    // When data refreshes, check again
+    if (window._dataCheckCallback) {
+      const originalCallback = window._dataCheckCallback;
+      window._dataCheckCallback = function(changed) {
+        originalCallback(changed);
+        if (changed) {
+          // Data changed, re-evaluate after a short delay to let DOM update
+          setTimeout(checkMatchStateForStream, 1000);
+        }
+      };
+    }
+  });
+</script>
+
+<style>
+  /* Fixed position layout for stream that doesn't interfere with scroll */
+  .twitch-stream-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 65%;
+    height: 100%;
+    background-color: #0e0e10;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+  }
+  
+  .twitch-stream-container.hidden {
+    transform: translateX(-100%);
+  }
+  
+  /* Fixed layout for entire page when stream is active */
+  body.with-stream .container {
+    margin-left: 65%;
+    width: 35%;
+    max-width: none;
+    transition: margin-left 0.3s ease, width 0.3s ease;
+  }
+  
+  /* Ensure header and event info also move with the content */
+  body.with-stream .header,
+  body.with-stream .event-info {
+    width: 100%;
+    max-width: none;
+  }
+  
+  /* When stream is active, stack columns and reorder */
+  body.with-stream .main-container {
+    flex-direction: column;
+    padding: 0 10px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  body.with-stream .info-column,
+  body.with-stream .matches-column {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  
+  body.with-stream .info-column {
+    margin-bottom: 15px;
+    padding: 0;
+  }
+  
+  body.with-stream .matches-column {
+    padding: 0;
+  }
+  
+  /* Fix team lists in mobile style view */
+  body.with-stream .next-match-teams {
+    display: flex;
+    flex-direction: column;
+  }
+
+  body.with-stream .teams-section {
+    margin-bottom: 10px;
+  }
+
+  /* Make event info wrap properly */
+  body.with-stream .event-info {
+    flex-wrap: wrap;
+  }
+
+  /* Adjust the event info spacing */
+  body.with-stream .event-info span {
+    margin-right: 10px;
+    margin-bottom: 5px;
+  }
+
+  /* Create better spacing in match cards */
+  body.with-stream .match-card {
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+  
+  /* Fix twitch embed and placeholder styling */
+  .twitch-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #18181b;
+    border-bottom: 1px solid #2d2d3a;
+  }
+  
+  .twitch-title {
+    display: flex;
+    align-items: center;
+    color: white;
+    font-weight: 600;
+  }
+  
+  .twitch-title svg {
+    margin-right: 8px;
+  }
+  
+  .twitch-controls {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .twitch-button {
+    background: none;
+    border: none;
+    color: #efeff1;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+  }
+  
+  .twitch-button:hover {
+    background-color: rgba(255,255,255,0.1);
+  }
+  
+  /* Fix placeholder and embed display issues */
+  .twitch-embed {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    display: none;
+  }
+  
+  .twitch-stream-placeholder {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #0e0e10;
+    color: #efeff1;
+    cursor: pointer;
+  }
+  
+  .twitch-stream-placeholder:hover {
+    background-color: #1f1f23;
+  }
+  
+  .twitch-placeholder-content {
+    text-align: center;
+  }
+  
+  .twitch-placeholder-content svg {
+    margin-bottom: 15px;
+  }
+  
+  /* Twitch toggle button styling */
+  .twitch-toggle {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #6441a5;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    z-index: 999;
+    transition: all 0.2s ease;
+  }
+  
+  .twitch-toggle.hidden {
+    display: none;
+  }
+  
+  .twitch-toggle.active {
+    background-color: #9147ff;
+    transform: rotate(45deg);
+  }
+  
+  .twitch-toggle:hover {
+    transform: scale(1.1);
+  }
+  
+  .twitch-toggle.active:hover {
+    transform: scale(1.1) rotate(45deg);
+  }
+  
+  /* Settings panel styling */
+  .twitch-settings-panel {
+    position: absolute;
+    top: 48px;
+    right: 0;
+    width: 280px;
+    background-color: #18181b;
+    border: 1px solid #2d2d3a;
+    border-radius: 4px;
+    padding: 15px;
+    z-index: 1001;
+  }
+  
+  .twitch-settings-panel.hidden {
+    display: none;
+  }
+  
+  .settings-group {
+    margin-bottom: 15px;
+  }
+  
+  .settings-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #efeff1;
+    font-size: 14px;
+  }
+  
+  .settings-group input[type="checkbox"] {
+    margin-right: 8px;
+  }
+  
+  .settings-group select,
+  .settings-group input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    background-color: #0e0e10;
+    border: 1px solid #2d2d3a;
+    color: #efeff1;
+    border-radius: 4px;
+  }
+  
+  .twitch-save-btn {
+    margin-top: 8px;
+    padding: 5px 10px;
+    background-color: #9147ff;
+    border: none;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .twitch-save-btn:hover {
+    background-color: #772ce8;
+  }
+  
+  /* Fix scrolling issues and prevent status getting stretched off-screen */
+body.with-stream .matches-column .content {
+  max-height: calc(100vh - 350px);
+  overflow-y: auto;
+  padding-right: 5px;
+  /* Make sure scrolling works properly */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix status indicators stretching off screen */
+body.with-stream .match-status,
+body.with-stream .status-queuing,
+body.with-stream .status-on-deck,
+body.with-stream .status-on-field,
+body.with-stream .status-default {
+  max-width: 100%;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Make sure the match cards fit properly when stream is active */
+body.with-stream .match-card {
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Fix height and prevent stretching of status containers */
+body.with-stream .next-match-details {
+  max-width: 100%;
+}
+
+/* Improve match content scrolling area */
+body.with-stream .matches-column .content {
+  /* Increase the height to ensure more content is visible */
+  max-height: calc(100vh - 320px);
+  /* Add padding to prevent content touching the edge */
+  padding: 0 5px 5px 0;
+  /* Improve scrollbar appearance */
+  scrollbar-width: thin;
+}
+
+/* Make sure all content within the container respects boundaries */
+body.with-stream .match-card,
+body.with-stream .match-group,
+body.with-stream .ranking-stats,
+body.with-stream .next-match-card,
+body.with-stream .clock-section {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Use flexbox for better layout control in the status indicators */
+body.with-stream .match-status {
+  display: inline-block;
+  text-align: center;
+  width: auto;
+  padding: 2px 8px;
+}
+
+/* Make sure we can see all team info when compressed */
+body.with-stream .teams-list {
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+</style>
 </body>
 </html>
