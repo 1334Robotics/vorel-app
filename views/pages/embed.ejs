@@ -10,14 +10,14 @@
   <meta property="og:url" content="https://vorel.app/?teamKey=<%= formattedTeamKey %>&eventKey=<%= eventKey %>">
   <meta property="og:title" content="Team <%= formattedTeamKey %> Matches at <%= eventName %>">
   <meta property="og:description" content="Embedded match schedule and results for FRC Team <%= formattedTeamKey %> at <%= eventName %>">
-  <meta property="og:image" content="https://vorel.app/banner-social3.png">
+  <meta property="og:image" content="https://vorel.app/banner-social3.avif">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:url" content="https://vorel.app/?teamKey=<%= formattedTeamKey %>&eventKey=<%= eventKey %>">
   <meta name="twitter:title" content="Team <%= formattedTeamKey %> Matches at <%= eventName %>">
   <meta name="twitter:description" content="Embedded match schedule and results for FRC Team <%= formattedTeamKey %> at <%= eventName %>">
-  <meta name="twitter:image" content="https://vorel.app/banner-social3.png">
+  <meta name="twitter:image" content="https://vorel.app/banner-social3.avif">
   
   <!-- Include your existing styles -->
   <%- include('../partials/styles') %>
@@ -63,7 +63,7 @@
     <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
       <div class="full-cover-error">
         <div class="error-container">
-          <img src="/banner2.png" alt="Vorel App Logo" class="error-logo">
+          <img src="/banner2.avif" alt="Vorel App Logo" class="error-logo">
           <h2><%= eventName %> has not started yet or there has been an issue</h2>
           <p>Please contact the website owner for assistance</p>
           <p class="status-code">Status code: <%= errorMessage.includes('status: ') ? errorMessage.match(/status: (\d+)/)[1] : 'Unknown' %></p>
@@ -73,7 +73,7 @@
     <% } else if (Object.keys(matchGroups).length === 0 && completedMatches.length === 0) { %>
       <div class="full-cover-error">
         <div class="error-container">
-          <img src="/banner2.png" alt="Vorel App Logo" class="error-logo">
+          <img src="/banner2.avif" alt="Vorel App Logo" class="error-logo">
           <h2><%= eventName %> has not started yet</h2>
           <p>No matches found for team <%= formattedTeamKey %></p>
           <p>Please check back later or contact the website owner if this persists</p>

@@ -25,9 +25,9 @@ app.set('views', path.join(__dirname, '../../views'));
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '../../views/public')));
 
-// Serve favicon.ico using the icon.png file
+// Serve favicon.ico using the icon.avif file
 app.get('/favicon.ico', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../views/public/icon.png'));
+  res.sendFile(path.join(__dirname, '../../views/public/icon.avif'));
 });
 
 
