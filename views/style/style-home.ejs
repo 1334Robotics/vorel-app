@@ -415,4 +415,33 @@
   .footer .container {
     min-height: auto; /* Override the 100vh for footer container */
   }
+
+  /* Add this to your existing styles */
+  .championship-notice {
+    background-color: rgba(67, 160, 71, 0.15);
+    border-left: 4px solid #43a047;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 24px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  }
+  
+  .notice-content h3 {
+    margin-top: 0;
+    color: #68db6d; /* Brighter green that works better on dark background */
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+  }
+  
+  .notice-content p {
+    margin-bottom: 0;
+    color: #f0f0f0; /* Changed to light color to match site's text color */
+    line-height: 1.5;
+  }
+  
+  @media (max-width: 768px) {
+    .championship-notice {
+      padding: 12px 16px;
+    }
+  }
 </style>
