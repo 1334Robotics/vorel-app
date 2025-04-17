@@ -18,9 +18,10 @@ if (!fs.existsSync(CACHE_DIR)) {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
 }
 
-// Add this new function to fetch event details
+// Update fetchEventDetails to map TBA event keys to Nexus event keys
 async function fetchEventDetails(eventKey) {
-  const url = `${BASE_URL}/${eventKey}`;
+  const nexusEventKey = mapEventKey(eventKey, 'tba', 'nexus');
+  const url = `${BASE_URL}/${nexusEventKey}`;
   const response = await fetch(url, {
     headers: {
       'Nexus-Api-Key': Nexus_Api_Key
@@ -36,8 +37,9 @@ async function fetchEventDetails(eventKey) {
 
 // Fetch team status at event (ranking info) from TBA
 async function fetchTeamStatusAtEvent(teamKey, eventKey) {
+  const tbaEventKey = mapEventKey(eventKey, 'nexus', 'tba');
   const formattedTeamKey = teamKey.startsWith('frc') ? teamKey : `frc${teamKey}`;
-  const url = `${TBA_BASE_URL}/team/${formattedTeamKey}/event/${eventKey}/status`;
+  const url = `${TBA_BASE_URL}/team/${formattedTeamKey}/event/${tbaEventKey}/status`;
   
   const response = await axios.get(url, {
     headers: {
@@ -50,7 +52,8 @@ async function fetchTeamStatusAtEvent(teamKey, eventKey) {
 
 // Fetch all match results for an event from TBA
 async function fetchEventMatchResults(eventKey) {
-  const url = `${TBA_BASE_URL}/event/${eventKey}/matches`;
+  const tbaEventKey = mapEventKey(eventKey, 'nexus', 'tba');
+  const url = `${TBA_BASE_URL}/event/${tbaEventKey}/matches`;
   
   const response = await axios.get(url, {
     headers: {
@@ -257,6 +260,37 @@ async function fallbackSearchTBAEvents(query, year) {
       date: `${dateStr}, ${year}`
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Add this function to map between TBA and Nexus event keys
+function mapEventKey(eventKey, sourceSystem, targetSystem) {
+  // Championship division mapping between TBA and Nexus
+  const tbaToNexusMap = {
+    // 2025 Championship divisions
+    '2025arc': '2025archimedes', // Archimedes Division
+    '2025cur': '2025curie',  // Curie Division
+    '2025gal': '2025galileo',  // Galileo Division
+    '2025hop': '2025hopper',  // Hopper Division
+    '2025joh': '2025johnson',  // Johnson Division
+    '2025mil': '2025milstein',  // Milstein Division
+    '2025new': '2025newton',  // Newton Division
+    '2025dal': '2025daly',  // Daly Division
+  };
+  
+  const nexusToTbaMap = {};
+  // Create reverse mapping
+  Object.entries(tbaToNexusMap).forEach(([tba, nexus]) => {
+    nexusToTbaMap[nexus] = tba;
+  });
+  
+  if (sourceSystem === 'tba' && targetSystem === 'nexus') {
+    return tbaToNexusMap[eventKey] || eventKey;
+  } else if (sourceSystem === 'nexus' && targetSystem === 'tba') {
+    return nexusToTbaMap[eventKey] || eventKey;
+  }
+  
+  // If no mapping or unknown source/target, return the original key
+  return eventKey;
 }
 
 // Add a Map to track the last update time for each year
