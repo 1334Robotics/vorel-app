@@ -428,5 +428,6 @@ module.exports = {
   fetchEventMatchResults,
   fetchTBAEventDetails,
   searchTBAEvents,
-  updateEventsCache, // Export this function for manual updates if needed
+  updateEventsCache,
+  mapEventKey
 };
