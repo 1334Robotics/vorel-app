@@ -1,5 +1,5 @@
 {
-  "name": "Vorel - FRC Match Schedule",
+  "name": "Vorel - FRC Match Status",
   "short_name": "Vorel",
   "description": "View match schedules and results for FRC teams at events",
   "start_url": "/",
