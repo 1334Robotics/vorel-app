@@ -14,6 +14,10 @@ router.get("/data-check", async (req, res) => {
   let { eventKey: rawEventKey, teamKey, lastUpdate } = req.query;
   const eventKey = rawEventKey ? rawEventKey.toLowerCase() : rawEventKey;
 
+    if (!teamKey || !eventKey) {
+    return res.status(400).json({ error: "Missing eventKey or teamKey" });
+  }
+
   try {
     // Fetch Nexus data
     const eventData = await fetchEventDetails(eventKey);
