@@ -214,10 +214,68 @@ router.get('/', async (req, res) => {
   }
 });
 
-
-// Add a health endpoint for Docker healthchecks
-router.get('/api/health', (req, res) => {
-  res.status(200).send('OK');
+// GET /preview - Social media preview page
+router.get('/preview', async (req, res) => {
+  const { teamKey, eventKey: rawEventKey } = req.query;
+  const eventKey = rawEventKey ? rawEventKey.toLowerCase() : rawEventKey;
+  
+  if (!teamKey || !eventKey) {
+    return res.redirect('/');
+  }
+  
+  // Check if the request is from a bot/crawler by examining user agent
+  const userAgent = req.get('User-Agent') || '';
+  const isBot = /bot|crawler|spider|facebook|twitter|slack|discord|telegram|whatsapp|linkedin|pinterest|preview/i.test(userAgent);
+  
+  // For normal browsers (not bots), redirect immediately to the main page
+  if (!isBot) {
+    return res.redirect(`/?teamKey=${teamKey}&eventKey=${eventKey}`);
+  }
+  
+  try {
+    // Continue with the existing code for bots to see the preview with OG tags
+    const formattedTeamKey = teamKey.startsWith("frc") ? teamKey : `frc${teamKey}`;
+    const teamNumber = formattedTeamKey.replace('frc', '');
+    
+    // Get event details
+    const eventData = await fetchEventDetails(eventKey);
+    if (!eventData) {
+      return res.status(404).render('pages/404');
+    }
+    
+    // Fetch event name from TBA for better display
+    let eventName = eventKey;
+    try {
+      const tbaEventDetails = await fetchTBAEventDetails(eventKey);
+      if (tbaEventDetails && tbaEventDetails.name) {
+        eventName = tbaEventDetails.name;
+      }
+    } catch (error) {
+      console.error('Error fetching event name from TBA:', error);
+    }
+    
+    // Set Open Graph metadata
+    const ogUrl = `https://vorel.app/?teamKey=${teamNumber}&eventKey=${eventKey}`;
+    const ogTitle = `Team ${teamNumber} at ${eventName}`;
+    const ogDescription = `View match schedule and results for FRC Team ${teamNumber} at ${eventName}`;
+    const ogImage = 'https://vorel.app/banner-social3.avif';
+    
+    // Render a page with proper OG tags
+    res.render('pages/preview', {
+      teamKey: teamNumber,
+      eventKey,
+      eventName,
+      ogUrl,
+      ogTitle, 
+      ogDescription,
+      ogImage,
+      redirectUrl: `/?teamKey=${teamNumber}&eventKey=${eventKey}`
+    });
+    
+  } catch (error) {
+    console.error('Error generating preview:', error);
+    res.status(500).render('pages/404');
+  }
 });
 
 // Add this route for the changelog page
