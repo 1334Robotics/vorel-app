@@ -4,8 +4,8 @@ const { fetchEventDetails, fetchTeamStatusAtEvent, fetchTBAEventDetails} = requi
 const { processMatchDataWithTBAResults } = require('../helpers/matches');
 const { getParentDomains } = require('../helpers/twitch');
 
-router.get('/matches', async (req, res) => {
-    response.status(200).json({ message: 'Embed endpoint is online but it seems that you haven\'t defined which one!' });
+router.get('/', async (req, res) => {
+    res.status(200).json({ message: 'Embed endpoint is online but it seems that you haven\'t defined which one!' });
 })
 
 

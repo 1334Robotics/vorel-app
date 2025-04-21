@@ -1,28 +1,101 @@
-<style>
-.stream-container-styles {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-}
-</style>
-<div class="stream-container-styles" style="height:<%= containerHeight || 400 %>px;">
-  <h2><%= eventName %></h2>
-  <% if (streamStatus === 'not_started') { %>
-    <p>The event has not started yet. Stream will be available from <%= startDate.toLocaleDateString() %>.</p>
-  <% } else if (streamStatus === 'ended') { %>
-    <p>This event has ended. No live stream is available.</p>
-  <% } else if (streamStatus === 'no_stream') { %>
-    <p>No Twitch stream is available for this event.</p>
-  <% } else if (streamStatus === 'live') { %>
-    <iframe
-      src="https://player.twitch.tv/?channel=<%= twitchChannel %><% parentDomains.forEach(function(domain) { %>&parent=<%= domain %><% }); %>"
-      frameborder="0"
-      allowfullscreen="true"
-      scrolling="no"
-      height="<%= containerHeight %>"
-      width="100%">
-    </iframe>
-  <% } %>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= eventName %> Stream | Vorel</title>
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://vorel.app/embed/stream?eventKey=<%= eventKey %>">
+  <meta property="og:title" content="<%= eventName %> Stream">
+  <meta property="og:description" content="Watch the live stream for <%= eventName %>">
+  <meta property="og:image" content="https://vorel.app/banner-social3.avif">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<%= eventName %> Stream">
+  <meta name="twitter:description" content="Watch the live stream for <%= eventName %>">
+  <meta name="twitter:image" content="https://vorel.app/banner-social3.avif">
+  
+  <!-- Include styles -->
+  <%- include('../style/style-embed') %>
+  <style>
+    .powered-by {
+      font-size: 10px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+      text-align: center;
+    }
+    .powered-by a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+    .powered-by a:hover {
+      text-decoration: underline;
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">    
+    <div class="content" style="display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 0;">
+      <% if (streamStatus === 'not_started') { %>
+        <div class="no-matches">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <p>The event has not started yet. Stream will be available from <%= startDate.toLocaleDateString() %>.</p>
+          <div class="powered-by">
+            <a href="https://vorel.app" target="_blank" style="display:inline-block;">
+              <img src="https://vorel.app/banner.avif" alt="vorel.app" style="height:32px; width:auto; vertical-align:middle; border-radius:3px;">
+            </a>
+          </div>
+        </div>
+      <% } else if (streamStatus === 'ended') { %>
+        <div class="no-matches">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <p>This event has ended. No live stream is available.</p>
+          <div class="powered-by">
+            <a href="https://vorel.app" target="_blank" style="display:inline-block;">
+              <img src="https://vorel.app/banner.avif" alt="vorel.app" style="height:32px; width:auto; vertical-align:middle; border-radius:3px;">
+            </a>
+          </div>
+        </div>
+      <% } else if (streamStatus === 'no_stream') { %>
+        <div class="no-matches">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.58 1.84L2.64 9.79a1 1 0 0 0 0 1.42l7.95 7.94a1 1 0 0 0 1.42 0l7.94-7.94a1 1 0 0 0 0-1.42l-7.94-7.95a1 1 0 0 0-1.43 0Z"></path>
+            <path d="M12 10v4"></path>
+            <path d="M12 7h.01"></path>
+          </svg>
+          <p>No Twitch stream is available for this event.</p>
+          <div class="powered-by">
+            <a href="https://vorel.app" target="_blank" style="display:inline-block;">
+              <img src="https://vorel.app/banner.avif" alt="vorel.app" style="height:32px; width:auto; vertical-align:middle; border-radius:3px;">
+            </a>
+          </div>
+        </div>
+      <% } else if (streamStatus === 'live') { %>
+        <div style="width:100%; height:<%= containerHeight %>px; display:flex; align-items:center; justify-content:center; position:relative;">
+          <iframe
+            src="https://player.twitch.tv/?channel=<%= twitchChannel %><% parentDomains.forEach(function(domain) { %>&parent=<%= domain %><% }); %>"
+            frameborder="0"
+            allowfullscreen="true"
+            scrolling="no"
+            height="<%= containerHeight %>"
+            width="100%">
+          </iframe>
+          <div class="powered-by" style="position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.5); padding:3px 6px; border-radius:3px;">
+            powered by <a href="https://vorel.app" target="_blank">vorel.app</a>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</body>
+</html>
