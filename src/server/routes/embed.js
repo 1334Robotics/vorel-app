@@ -3,8 +3,14 @@ const router = express.Router();
 const { fetchEventDetails, fetchTeamStatusAtEvent, fetchTBAEventDetails} = require('../helpers/api');
 const { processMatchDataWithTBAResults } = require('../helpers/matches');
 
-// GET /embed/ - Embeddable version of team match display
-router.get('/', async (req, res) => {
+router.get('/matches', async (req, res) => {
+    response.status(200).json({ message: 'Embed endpoint is online but it seems that you haven\'t defined which one!' });
+})
+
+
+
+// GET /embed/matches - Embeddable version of team match display
+router.get('/matches', async (req, res) => {
   const { teamKey, eventKey: rawEventKey, height = '600' } = req.query;
   const eventKey = rawEventKey ? rawEventKey.toLowerCase() : rawEventKey;
   
@@ -166,66 +172,57 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /preview - Social media preview page
-router.get('/preview', async (req, res) => {
-  const { teamKey, eventKey: rawEventKey } = req.query;
+// GET /embed/stream - Embeddable Twitch stream for an event
+router.get('/stream', async (req, res) => {
+  const { eventKey: rawEventKey, height = '480' } = req.query;
   const eventKey = rawEventKey ? rawEventKey.toLowerCase() : rawEventKey;
-  
-  if (!teamKey || !eventKey) {
-    return res.redirect('/');
+
+  if (!eventKey) {
+    return res.status(400).json({ error: 'Missing eventKey parameter' });
   }
-  
-  // Check if the request is from a bot/crawler by examining user agent
-  const userAgent = req.get('User-Agent') || '';
-  const isBot = /bot|crawler|spider|facebook|twitter|slack|discord|telegram|whatsapp|linkedin|pinterest|preview/i.test(userAgent);
-  
-  // For normal browsers (not bots), redirect immediately to the main page
-  if (!isBot) {
-    return res.redirect(`/?teamKey=${teamKey}&eventKey=${eventKey}`);
-  }
-  
+
   try {
-    // Continue with the existing code for bots to see the preview with OG tags
-    const formattedTeamKey = teamKey.startsWith("frc") ? teamKey : `frc${teamKey}`;
-    const teamNumber = formattedTeamKey.replace('frc', '');
-    
-    // Get event details
-    const eventData = await fetchEventDetails(eventKey);
-    if (!eventData) {
+    // Fetch event details from TBA
+    const tbaEvent = await fetchTBAEventDetails(eventKey);
+    if (!tbaEvent) {
       return res.status(404).render('pages/404');
     }
-    
-    // Fetch event name from TBA for better display
-    let eventName = eventKey;
-    try {
-      const tbaEventDetails = await fetchTBAEventDetails(eventKey);
-      if (tbaEventDetails && tbaEventDetails.name) {
-        eventName = tbaEventDetails.name;
+
+    // Parse event dates
+    const today = new Date();
+    const startDate = new Date(tbaEvent.start_date);
+    const endDate = new Date(tbaEvent.end_date);
+    endDate.setHours(23, 59, 59, 999); // Include the whole last day
+
+    // Find Twitch stream(s) from webcasts
+    let twitchChannel = null;
+    if (Array.isArray(tbaEvent.webcasts)) {
+      const twitchWebcast = tbaEvent.webcasts.find(wc => wc.type === 'twitch' && wc.channel);
+      if (twitchWebcast) {
+        twitchChannel = twitchWebcast.channel;
       }
-    } catch (error) {
-      console.error('Error fetching event name from TBA:', error);
     }
-    
-    // Set Open Graph metadata
-    const ogUrl = `https://vorel.app/?teamKey=${teamNumber}&eventKey=${eventKey}`;
-    const ogTitle = `Team ${teamNumber} at ${eventName}`;
-    const ogDescription = `View match schedule and results for FRC Team ${teamNumber} at ${eventName}`;
-    const ogImage = 'https://vorel.app/banner-social3.avif';
-    
-    // Render a page with proper OG tags
-    res.render('pages/preview', {
-      teamKey: teamNumber,
+
+    let streamStatus = '';
+    if (today < startDate) {
+      streamStatus = 'not_started';
+    } else if (today > endDate) {
+      streamStatus = 'ended';
+    } else {
+      streamStatus = twitchChannel ? 'live' : 'no_stream';
+    }
+
+    res.render('pages/stream', {
       eventKey,
-      eventName,
-      ogUrl,
-      ogTitle, 
-      ogDescription,
-      ogImage,
-      redirectUrl: `/?teamKey=${teamNumber}&eventKey=${eventKey}`
+      eventName: tbaEvent.name,
+      twitchChannel,
+      streamStatus,
+      containerHeight: parseInt(height) > 0 ? parseInt(height) : 480,
+      startDate,
+      endDate
     });
-    
   } catch (error) {
-    console.error('Error generating preview:', error);
+    console.error('Error generating stream embed:', error);
     res.status(500).render('pages/404');
   }
 });

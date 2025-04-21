@@ -6,7 +6,7 @@ const crypto = require('crypto');
 
 // Health endpoint for Docker healthchecks
 router.get('/health', (req, res) => {
-  res.status(200).send('OK');
+  res.status(200).send('Alive!');
 });
 
 // Data-check endpoint to detect changes
