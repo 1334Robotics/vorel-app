@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { fetchEventDetails, fetchTeamStatusAtEvent, fetchTBAEventDetails} = require('../helpers/api');
 const { processMatchDataWithTBAResults } = require('../helpers/matches');
+const { getParentDomains } = require('../utils/twitch');
 
 router.get('/matches', async (req, res) => {
     response.status(200).json({ message: 'Embed endpoint is online but it seems that you haven\'t defined which one!' });
@@ -219,7 +220,8 @@ router.get('/stream', async (req, res) => {
       streamStatus,
       containerHeight: parseInt(height) > 0 ? parseInt(height) : 480,
       startDate,
-      endDate
+      endDate,
+      parentDomains: getParentDomains(req),
     });
   } catch (error) {
     console.error('Error generating stream embed:', error);

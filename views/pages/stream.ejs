@@ -1,0 +1,28 @@
+<style>
+.stream-container-styles {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+</style>
+<div class="stream-container-styles" style="height:<%= containerHeight || 400 %>px;">
+  <h2><%= eventName %></h2>
+  <% if (streamStatus === 'not_started') { %>
+    <p>The event has not started yet. Stream will be available from <%= startDate.toLocaleDateString() %>.</p>
+  <% } else if (streamStatus === 'ended') { %>
+    <p>This event has ended. No live stream is available.</p>
+  <% } else if (streamStatus === 'no_stream') { %>
+    <p>No Twitch stream is available for this event.</p>
+  <% } else if (streamStatus === 'live') { %>
+    <iframe
+      src="https://player.twitch.tv/?channel=<%= twitchChannel %><% parentDomains.forEach(function(domain) { %>&parent=<%= domain %><% }); %>"
+      frameborder="0"
+      allowfullscreen="true"
+      scrolling="no"
+      height="<%= containerHeight %>"
+      width="100%">
+    </iframe>
+  <% } %>
+</div>
