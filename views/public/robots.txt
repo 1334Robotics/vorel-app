@@ -1,7 +1,6 @@
 User-agent: *
-Allow: /
-Disallow: /api/
+Disallow: /api
 Disallow: /embed
-Disallow: /embed?
+Allow: /
 
 Sitemap: https://vorel.app/sitemap.xml
