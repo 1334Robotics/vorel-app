@@ -11,7 +11,6 @@ const { processMatchDataWithTBAResults, calculateRecordFromCompletedMatches } = 
 //   const eventDetails = await fetchEventDetails(eventKey);
 //   res.send(eventDetails);
 // });
-// router.use('/api', apiRoutes);
 
 // GET / - Full page version with TBA data
 router.get('/', async (req, res) => {
