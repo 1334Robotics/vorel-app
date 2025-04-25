@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A web service for FRC teams that integrates with The Blue Alliance API and FRC Nexus API to track match schedules, alliance partnerships, team performance, and event rankings. Easily embeddable for team websites and competition displays.",
   "main": "src/server.js",
+  "homepage": "https://vorel.app",
   "scripts": {
     "start": "node src/server/index.js",
     "test": "echo \"No tests specified\" && exit 0"
@@ -38,6 +39,5 @@
   },
   "bugs": {
     "url": "https://github.com/1334Robotics/vorel-app/issues"
-  },
-  "homepage": "https://github.com/1334Robotics/vorel-app#readme"
+  }
 }
