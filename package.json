@@ -30,5 +30,14 @@
     "embeddable"
   ],
   "author": "Melodydevelopment, 1334Robotics",
-  "license": "GPL-3.0"
+  "license": "GPL-3.0",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/1334Robotics/vorel-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/1334Robotics/vorel-app/issues"
+  },
+  "homepage": "https://github.com/1334Robotics/vorel-app#readme"
 }
