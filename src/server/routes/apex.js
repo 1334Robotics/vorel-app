@@ -4,7 +4,7 @@ const { fetchEventDetails, fetchTeamStatusAtEvent, fetchTBAEventDetails} = requi
 const { processMatchDataWithTBAResults, calculateRecordFromCompletedMatches } = require('../helpers/matches');
 // const apiRoutes = require('./api');
 
-// GET /api/TBA-matches/test - Returns raw event data
+// GET /test - Returns raw event data
 // DO NOT UNCOMMENT THIS UNLESS YOU KNOW WHAT YOU'RE DOING AS THIS WILL ALLOW OTHERS TO EXPLOIT YOUR API KEY
 // router.get('/test', async (req, res) => {
 //   const { eventKey } = req.query;
