@@ -68,7 +68,6 @@
       <% if (match.status === "Completed" && match.result) { %>
         <div class="match-result <%= resultClass %>"><%= resultText %></div>
         
-        <!-- Only show RP in full page version when showRankingPoints is true -->
         <% if (shouldShowRankingPoints && match.rankingPoints && match.rankingPoints.total !== undefined) { %>
           <div class="match-rp">
             <%= match.rankingPoints.total %> RP
@@ -82,7 +81,6 @@
     </div>
     <div class="match-time" data-timestamp="<%= rawScheduledTime %>">
       <%= timeDisplay %>
-      <!-- Temporary debugging info -->
       <span style="display: none;" class="debug-timestamp">Raw: <%= rawScheduledTime %></span>
     </div>
   </div>
@@ -121,7 +119,6 @@
         </div>
       </div>
       
-      <!-- New: Display Ranking Points section for completed matches -->
       <% if (match.status === "Completed" && match.rankingPoints) { %>
         <div class="result-section">
           <div class="result-title <%= resultClass ? 'result-' + match.result + '-title' : '' %>">
