@@ -506,4 +506,99 @@
     transform: scale(0.97);
     transition: transform 0.12s cubic-bezier(0.4,0,0.2,1);
   }
+    /* --- Donate/Sponsor Section Styles --- */
+  .donate-section {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 16px 0 96px 0;
+    padding: 0;
+    background: none;
+  }
+  .donate-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 4px 24px 0 rgba(0,0,0,0.10);
+    padding: 32px 32px 24px 32px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+  .donate-title {
+    display: flex;
+    align-items: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #ff5252;
+    margin-bottom: 0;
+    letter-spacing: 0.5px;
+  }
+  .donate-desc {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-bottom: 0;
+    margin-top: 0;
+    line-height: 1.5;
+  }
+  .donate-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(90deg, #23272f, #2d2f36);
+    color: #ff5252;
+    font-weight: 600;
+    font-size: 1rem;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px 24px;
+    margin-top: 8px;
+    text-decoration: none;
+    box-shadow: 0 2px 8px 0 rgba(30,30,30,0.10);
+    transition: background-color 0.6s cubic-bezier(0.4,0,0.2,1),
+                background-image 0.6s cubic-bezier(0.4,0,0.2,1),
+                color 0.6s cubic-bezier(0.4,0,0.2,1),
+                box-shadow 0.4s cubic-bezier(0.4,0,0.2,1),
+                transform 0.25s cubic-bezier(0.4,0,0.2,1);
+    cursor: pointer;
+    outline: none;
+    gap: 6px;
+  }
+  .donate-btn svg {
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .donate-btn:hover, .donate-btn:focus {
+    background: linear-gradient(90deg, #ff1744, #ff5252);
+    box-shadow: 0 4px 16px 0 rgba(255,23,68,0.15);
+    transform: translateY(-2px) scale(1.03);
+    color: #fff;
+    text-decoration: none;
+  }
+  @media (max-width: 600px) {
+    .donate-card {
+      padding: 20px 8px 16px 8px;
+      max-width: 98vw;
+    }
+    .donate-section {
+      padding: 0 0 20px 0;
+      margin: 32px 0 0 0;
+    }
+    .donate-title {
+      font-size: 1.1rem;
+    }
+    .donate-desc {
+      font-size: 0.95rem;
+    }
+    .donate-btn {
+      font-size: 0.98rem;
+      padding: 10px 12px;
+    }
+  }
 </style>
