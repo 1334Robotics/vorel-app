@@ -37,10 +37,41 @@ router.get('/', async (req, res) => {
   }
   
   try {
-    // Load match data
-    const eventData = await fetchEventDetails(eventKey);
-    if (!eventData) {
-      return res.status(404).json({ error: 'Event not found' });
+    // Load match data, with temporary handling if the event is over
+    let eventData;
+    try {
+      eventData = await fetchEventDetails(eventKey);
+      if (!eventData) {
+        // Event not found in Nexus
+        return res.render('pages/matches', {
+          teamKey: teamKey || '',
+          formattedTeamKey,
+          eventKey: eventKey || '',
+          eventName,
+          matchGroups: {},
+          completedMatches: [],
+          nowQueuing: null,
+          teamRanking: null,
+          errorMessage: `This event appears to be over or there has been an error. If the event is finished we are working on fixing it. If the event is not, please fill out a issue on our github. ${error.message}`
+        });
+      }
+    } catch (error) {
+      // Notify user if event is likely over, otherwise propagate error
+      if (error.message.includes('404') || error.message.toLowerCase().includes('not found')) {
+        return res.render('pages/matches', {
+          teamKey: teamKey || '',
+          formattedTeamKey,
+          eventKey: eventKey || '',
+          eventName,
+          matchGroups: {},
+          completedMatches: [],
+          nowQueuing: null,
+          teamRanking: null,
+          errorMessage: `This event appears to be over or there has been an error. If the event is finished we are working on fixing it. If the event is not, please fill out a issue on our github. ${error.message}`
+        });
+      }
+      // Other errors: rethrow to outer catch
+      throw error;
     }
     
     // We already fetched the event name above, no need to fetch it again
