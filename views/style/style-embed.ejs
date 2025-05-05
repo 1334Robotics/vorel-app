@@ -12,7 +12,6 @@
     --border: #333333;
   }
 
-  /* Embed-specific styles */
   html,
   body {
     height: 100%;
@@ -60,7 +59,6 @@
     pointer-events: all;
   }
 
-  /* Advantage Scope-inspired 3D cube spinner */
   .refresh-spinner {
     width: 60px;
     height: 60px;
@@ -332,7 +330,6 @@
     }
   }
 
-  /* Error message styling */
   .error-message {
     background-color: rgba(244, 67, 54, 0.15);
     color: #f44336;
@@ -344,7 +341,6 @@
     box-shadow: 0 2px 8px rgba(244, 67, 54, 0.1);
   }
 
-  /* Footer styling */
   .footer {
     font-size: 0.8em;
     color: var(--text-secondary);
@@ -365,7 +361,6 @@
     opacity: 0.8;
   }
 
-  /* Match details styling */
   .match-details {
     padding: 14px 15px 16px;
     border-top: 1px solid var(--border);
@@ -445,43 +440,40 @@
     background-color: rgba(26, 42, 58, 0.8);
   }
 
-  /* Improved match result styling */
   .match-result {
     border-top: 1px solid var(--border);
     font-size: 0.9em;
     color: var(--text);
     text-align: center;
-
-    /* Remove the flex container that might be causing spacing issues */
     display: block;
-    position: relative; /* Add positioning context */
-    line-height: 1.4; /* Tighten the line height */
+    position: relative;
+    line-height: 1.4;
   }
 
   .match-result-text {
-    display: inline-flex; /* Change to inline-flex */
+    display: inline-flex;
     justify-content: center;
     align-items: center;
     gap: 6px;
-    margin-top: 0; /* Remove additional spacing */
+    margin-top: 0;
   }
 
-  /* Make sure colors stand out properly */
+
   .result-winner {
     font-weight: bold;
-    color: #56de59; /* Brighter green for better visibility */
+    color: #56de59;
   }
 
   .result-loser {
-    color: #ff5252; /* Brighter red for better visibility */
+    color: #ff5252;
   }
 
   .result-tie {
-    color: #ffb74d; /* Brighter orange for better visibility */
+    color: #ffb74d;
   }
 
   .footer .container {
-    min-height: auto; /* Override the 100vh for footer container */
+    min-height: auto;
   }
 
   .full-cover-error {
