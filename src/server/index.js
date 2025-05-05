@@ -42,29 +42,11 @@ app.use((req, res, next) => {
   };
   next();
 });
-// Remove CSS comments and serve CSS files
-app.get(/.*\.css$/, (req, res, next) => {
-  const cssPath = path.join(__dirname, "../../views/public", req.path);
-  fs.readFile(cssPath, "utf8", (err, data) => {
-    if (err) return next();
-    const cleanedCss = data.replace(/\/\*[\s\S]*?\*\//g, '');
-    res.type("css").send(cleanedCss);
-  });
-});
 
 // Set up EJS as the view engine
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "../../views"));
 
-// Remove CSS comments and serve CSS files, then serve other static files
-app.get(/.*\.css$/, (req, res, next) => {
-  const cssPath = path.join(__dirname, "../../views/public", req.path);
-  fs.readFile(cssPath, "utf8", (err, data) => {
-    if (err) return next();
-    const cleanedCss = data.replace(/\/\*[\s\S]*?\*\//g, '');
-    res.type("css").send(cleanedCss);
-  });
-});
 app.use(express.static(path.join(__dirname, "../../views/public")));
 
 // Serve favicon.ico using the icon.avif file
