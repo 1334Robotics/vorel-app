@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const fs = require("fs");
 require("dotenv").config();
 
 console.log(`Vorel Copyright (C) 2025 1334Robotics
@@ -18,12 +19,52 @@ const { initializeEventCache } = require("./helpers/api"); // Add this line near
 // Middleware
 app.use(cors());
 app.use(express.json());
+// Strip HTML comments from rendered views
+app.use((req, res, next) => {
+  const originalRender = res.render;
+  res.render = function(view, options, callback) {
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+    originalRender.call(this, view, options, (err, html) => {
+      if (err) {
+        if (callback) return callback(err);
+        return next(err);
+      }
+      // Remove HTML comments and CSS comment blocks in inline styles
+      const cleanedHtml = html
+        .replace(/<!--[\s\S]*?-->/g, '')
+        .replace(/\/\*[\s\S]*?\*\//g, '');
+      if (callback) return callback(null, cleanedHtml);
+      res.send(cleanedHtml);
+    });
+  };
+  next();
+});
+// Remove CSS comments and serve CSS files
+app.get(/.*\.css$/, (req, res, next) => {
+  const cssPath = path.join(__dirname, "../../views/public", req.path);
+  fs.readFile(cssPath, "utf8", (err, data) => {
+    if (err) return next();
+    const cleanedCss = data.replace(/\/\*[\s\S]*?\*\//g, '');
+    res.type("css").send(cleanedCss);
+  });
+});
 
 // Set up EJS as the view engine
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "../../views"));
 
-// Serve static files from the public directory
+// Remove CSS comments and serve CSS files, then serve other static files
+app.get(/.*\.css$/, (req, res, next) => {
+  const cssPath = path.join(__dirname, "../../views/public", req.path);
+  fs.readFile(cssPath, "utf8", (err, data) => {
+    if (err) return next();
+    const cleanedCss = data.replace(/\/\*[\s\S]*?\*\//g, '');
+    res.type("css").send(cleanedCss);
+  });
+});
 app.use(express.static(path.join(__dirname, "../../views/public")));
 
 // Serve favicon.ico using the icon.avif file
