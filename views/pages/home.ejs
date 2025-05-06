@@ -74,16 +74,27 @@
   </script>
   
   <%- include('../style/style-home') %>
-</head>
-<body>
-  <div class="main-content">
-    <div class="hero">
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <div class="container nav-container">
+        <a href="/" class="brand">Vorel</a>
+        <ul class="nav-links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/docs">Documentation</a></li>
+          <li><a href="https://github.com/1334Robotics/vorel-app" target="_blank">GitHub</a></li>
+        </ul>
+      </div>
+    </nav>
+    <!-- Hero -->
+    <header class="hero">
       <div class="container">
-        <img src="/banner.avif" alt="Vorel App Banner" class="hero-logo" />
-        <h1 class="hero-title">FRC Match Schedule & Results Tracker</h1>
-        <p class="hero-subtitle">
-          The ultimate companion for FRC teams tracking competition journeys with real-time updates
-        </p>
+        <h1 class="hero-title"><span class="highlight">Vorel</span> - FRC Match Tracker</h1>
+        <p class="hero-subtitle">Real-time match schedules, results, and rankings for FIRST Robotics Competition teams.</p>
+        <a href="#search" class="btn btn-primary">Get Started</a>
+      </div>
+    </header>
         
   
         <!-- <div class="championship-notice">

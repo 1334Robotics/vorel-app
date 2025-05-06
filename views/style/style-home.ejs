@@ -1,9 +1,9 @@
 <style>
   :root {
-    --primary: #4fc3f7;
-    --primary-darker: #0288d1;
-    --accent: #8b0000;
-    --accent-hover: #a00000;
+    --primary: #ff6600;         /* primary brand orange */
+    --primary-darker: #e65c00;  /* darker orange */
+    --accent: #cc0000;          /* brand red */
+    --accent-hover: #e00000;    /* hover red */
     --bg-dark: #111111;
     --bg-card: #1a1a1a;
     --bg-card-hover: #222222;
@@ -198,6 +198,60 @@
     color: var(--text-secondary);
     margin: 0;
     font-size: 0.9rem;
+  }
+  /* Navigation */
+  .navbar {
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: 0.5rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .nav-links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 1rem;
+  }
+  .nav-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .nav-links a:hover {
+    color: var(--text);
+  }
+  /* Buttons */
+  .btn {
+    display: inline-block;
+    padding: 0.6em 1.2em;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.3s;
+  }
+  .btn-primary {
+    background-color: var(--primary);
+    color: #fff;
+  }
+  .btn-primary:hover {
+    background-color: var(--primary-darker);
+  }
+  .highlight {
+    color: var(--accent);
   }
 
   .search-section {
