@@ -231,15 +231,26 @@
     margin: 0;
     padding: 0;
     display: flex;
+    align-items: center;
     gap: 1rem;
   }
   .nav-links a {
     color: var(--text-secondary);
     text-decoration: none;
-    font-weight: 500;
+    font-size: 1.2rem;
+    padding: 0.5rem;
   }
   .nav-links a:hover {
     color: var(--text);
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+  }
+  /* Ensure nav icons align vertically */
+  .nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
   }
   /* Buttons */
   .btn {
