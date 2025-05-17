@@ -19,6 +19,14 @@ const { initializeEventCache } = require("./helpers/api"); // Add this line near
 // Middleware
 app.use(cors());
 app.use(express.json());
+// Security headers
+app.use((req, res, next) => {
+  // HTTP Strict-Transport-Security
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  // X-Content-Type-Options
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  next();
+});
 // Strip HTML comments from rendered views
 app.use((req, res, next) => {
   const originalRender = res.render;
