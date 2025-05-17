@@ -7,7 +7,6 @@ const APP_SHELL = [
   '/icon-512.png'
 ];
 
-// Only cache the minimal app shell during installation
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -23,22 +22,16 @@ self.addEventListener('install', (event) => {
         );
       })
   );
-  // Activate immediately
   self.skipWaiting();
 });
 
-// Always use network for all requests
 self.addEventListener('fetch', (event) => {
-  // Let the browser handle all requests normally
-  // This ensures all data is always fresh from the network
   return;
 });
 
-// Clean up any old caches and update app shell cache
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     Promise.all([
-      // Clean up old caches
       caches.keys().then((cacheNames) => {
         return Promise.all(
           cacheNames.filter((name) => name !== CACHE_NAME)
@@ -46,19 +39,14 @@ self.addEventListener('activate', (event) => {
         );
       }),
       
-      // Update the app shell cache with fresh versions
       caches.open(CACHE_NAME).then((cache) => {
         console.log('Checking for app shell updates on boot');
-        
-        // Only try to update if online
         if (self.navigator.onLine) {
           return Promise.all(
             APP_SHELL.map(url => {
-              // Fetch fresh version of resource
               return fetch(url, { cache: 'no-store' })
                 .then(response => {
                   if (response.ok) {
-                    // Update the cache with fresh version
                     return cache.put(url, response);
                   }
                   return Promise.resolve();
@@ -76,7 +64,5 @@ self.addEventListener('activate', (event) => {
       })
     ])
   );
-  
-  // Claim clients so the service worker takes control immediately
   self.clients.claim();
 });
