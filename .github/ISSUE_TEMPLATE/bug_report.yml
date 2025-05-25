@@ -8,21 +8,15 @@ body:
       value: |
         Thanks for taking the time to fill out this bug report!
       
-  - type: dropdown
-    id: platform
+  - type: input
+    id: browser
     attributes:
-      label: Platform
-      description: What platform are you experiencing the bug on?
-      options:
-        - Desktop / Laptop
-        - Raspberry Pi (For TV)
-        - Orange Pi (For TV)
-        - Android
-        - IOS
-        - Other
+      label: Browser
+      description: What browser are you using? (If applicable)
+      placeholder: "Chrome, Firefox, Safari, etc."
     validations:
       required: true
-      
+
   - type: input
     id: device
     attributes:
