@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const compression = require("compression");
 const path = require("path");
 const fs = require("fs");
 require("dotenv").config();
@@ -17,6 +18,7 @@ const embedRoutes = require("./routes/embed");
 const { initializeEventCache } = require("./helpers/api"); // Add this line near the top of src/server/index.js after importing routes
 
 // Middleware
+app.use(compression());
 app.use(cors());
 app.use(express.json());
 // Security headers
