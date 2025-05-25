@@ -22,18 +22,12 @@ body:
     validations:
       required: true
       
-  - type: dropdown
-    id: platform
+  - type: input
+    id: browser
     attributes:
-      label: Platform
-      description: Which platform(s) is this feature for?
-      multiple: true
-      options:
-        - Mobile
-        - Desktop/Laptop
-        - Raspberry Pi (For TV)
-        - Orange Pi (For TV)
-        - All Platforms
+      label: Browser
+      description: What browser are you using? (If applicable)
+      placeholder: "Chrome, Firefox, Safari, etc."
     validations:
       required: true
 
@@ -41,7 +35,7 @@ body:
     id: device
     attributes:
       label: Device
-      description: Spsific Device? (For Raspberry Pi / Orange Pi, specify model and OS, For Desktop/Laptop, specify OS)
+      description: Specific Device? (For Raspberry Pi / Orange Pi, specify model and OS, For Desktop/Laptop, specify OS)
       placeholder: "iPhone 13, Samsung Galaxy S22, etc. (For Desktop/Laptop, specify OS)"
     validations:
       required: false
