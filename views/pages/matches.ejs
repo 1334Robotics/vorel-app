@@ -18,73 +18,10 @@
   <meta name="twitter:title" content="Team <%= formattedTeamKey %> Matches at <%= eventName %>">
   <meta name="twitter:description" content="View match schedule and results for FRC Team <%= formattedTeamKey %> at <%= eventName %>">
   <meta name="twitter:image" content="https://vorel.app/banner-social3.avif">
-  
-  <%- include('../partials/styles') %>
+    <%- include('../partials/styles') %>
   <%- include('../style/style-matches') %>
-  <script>
-    // Add this before the closing </head> tag to ensure it runs as early as possible
-    (function() {
-      // Create and add a style tag to ensure refresh overlay is visible immediately
-      const style = document.createElement('style');
-      style.textContent = '.refresh-overlay { opacity: 1 !important; pointer-events: all !important; }';
-      document.head.appendChild(style);
-      
-      // Remove the style after a short delay to let CSS transitions take over
-      setTimeout(() => {
-        document.head.removeChild(style);
-      }, 100);
-    })();
-  </script>
-  <script>
-  // Show loading animation immediately during page load
-  document.getElementById('refresh-overlay')?.classList.add('active');
-</script>
-  <script>
-    // This ensures the overlay is visible immediately, even before DOM is ready
-    document.addEventListener('DOMContentLoaded', function() {
-      const overlay = document.getElementById('refresh-overlay');
-      if (overlay) {
-        // Don't immediately hide the overlay - wait to see if content loads quickly
-        
-        // Only hide the overlay once the page is completely loaded
-        window.addEventListener('load', function() {
-          // Give a small delay to ensure everything is rendered
-          setTimeout(() => {
-            overlay.classList.remove('active');
-          }, 200);
-        });
-      }
-    });
-  </script>
-  <script>
-    // This ensures the overlay is visible immediately, even before DOM is ready
-    document.addEventListener('DOMContentLoaded', function() {
-      const overlay = document.getElementById('refresh-overlay');
-      if (overlay) {
-        // Only hide the overlay once the page is completely loaded
-        window.addEventListener('load', function() {
-          // Give a small delay to ensure everything is rendered
-          setTimeout(() => {
-            overlay.classList.remove('active');
-          }, 200);
-        });
-      }
-    });
-  </script>
 </head>
 <body>
-  <!-- Add refresh overlay at the beginning of body -->
-  <div id="refresh-overlay" class="refresh-overlay active">
-    <div class="refresh-spinner">
-      <div class="cube-face front"></div>
-      <div class="cube-face back"></div>
-      <div class="cube-face right"></div>
-      <div class="cube-face left"></div>
-      <div class="cube-face top"></div>
-      <div class="cube-face bottom"></div>
-    </div>
-  </div>
-  
   <div class="container">
     <div class="header">
       <div class="header-content">
@@ -297,8 +234,7 @@
 
   <%- include('../partials/scripts', { eventKey }) %>
   
-  <script>
-    // Add clock functionality
+  <script>    // Add clock functionality
     function updateClock() {
       const now = new Date();
       
@@ -321,12 +257,10 @@
       setTimeout(updateClock, 1000);
     }
     
-    document.addEventListener('DOMContentLoaded', function() {
-      updateClock();
-    });
-
     // QR Code functionality
     document.addEventListener('DOMContentLoaded', function() {
+      updateClock();
+      
       // Check if it's a mobile device using a common method
       const isMobile = /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
@@ -433,103 +367,6 @@
         generateQRCode();
       }
     }
-
-    // Add refresh animation instead of page reload
-    document.addEventListener('DOMContentLoaded', function() {
-      // Existing initialization code...
-      updateClock();
-      
-      // Add refresh animation handling
-      setupRefreshAnimation();
-    });
-    
-    // Function to set up the refresh animation logic
-    function setupRefreshAnimation() {
-      // Get the refresh overlay element
-      const refreshOverlay = document.getElementById('refresh-overlay');
-      
-      // Create a function to intercept the regular reload and replace it with animation
-      window.performAnimatedRefresh = function() {
-        // Show the animation
-        refreshOverlay.classList.add('active');
-        
-        // After animation completes (1 second), fetch the updated content
-        setTimeout(() => {
-          // Fetch the same page with the same parameters
-          fetch(window.location.href)
-            .then(response => response.text())
-            .then(html => {
-              // Create a temporary element to parse the HTML
-              const tempDiv = document.createElement('div');
-              tempDiv.innerHTML = html;
-              
-              // Update the main container content
-              const newMainContainer = tempDiv.querySelector('.main-container');
-              const currentMainContainer = document.querySelector('.main-container');
-              
-              if (newMainContainer && currentMainContainer) {
-                currentMainContainer.innerHTML = newMainContainer.innerHTML;
-              }
-              
-              // Update the event info section
-              const newEventInfo = tempDiv.querySelector('.event-info');
-              const currentEventInfo = document.querySelector('.event-info');
-              
-              if (newEventInfo && currentEventInfo) {
-                currentEventInfo.innerHTML = newEventInfo.innerHTML;
-              }
-              
-              // Hide the animation
-              refreshOverlay.classList.remove('active');
-              
-              // Re-initialize any event handlers or scripts that need to run after content update
-              updateClock();
-            })
-            .catch(error => {
-              console.error('Error fetching updated content:', error);
-              // If there's an error, just do a regular page reload
-              refreshOverlay.classList.remove('active');
-              window.location.reload();
-            });
-        }, 1000);  // Wait for animation to complete
-      };
-      
-      // The rest of the setupRefreshAnimation function remains unchanged
-      // ...
-    }
-    
-    // Add a spinner animation when the refresh button is clicked
-    // This assumes there's a refresh button with id="refresh-button"
-    document.addEventListener('click', function(e) {
-      if (e.target.id === 'refresh-button' || e.target.closest('#refresh-button')) {
-        e.preventDefault();
-        performAnimatedRefresh();
-      }
-    });
-
-    // Update the callback method to use the animated refresh instead of reload
-    window._dataCheckCallback = function(changed) {
-      if (changed) {
-        if (typeof window.performAnimatedRefresh === 'function') {
-          window.performAnimatedRefresh();
-        } else {
-          window.location.reload();  // Fallback if our function isn't available
-        }
-      }
-    };
-
-    // Show the loading animation immediately when script runs (before DOM is ready)
-    document.addEventListener('DOMContentLoaded', function() {
-      // Hide the loading animation once DOM is fully loaded
-      const refreshOverlay = document.getElementById('refresh-overlay');
-      if (refreshOverlay) {
-        refreshOverlay.classList.remove('active');
-      }
-      
-      // Existing initialization code...
-      updateClock();
-      setupRefreshAnimation();
-    });
   </script>
 
   <!-- QR Code Reopen Button -->
