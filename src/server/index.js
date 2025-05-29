@@ -57,7 +57,6 @@ app.use((req, res, next) => {
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "../../views"));
 
-// Serve static assets from views/public with 7 day cache and no immutable flag
 const staticOptions = {
   maxAge: '7d',
   immutable: false
@@ -66,7 +65,6 @@ app.use(express.static(path.join(__dirname, "../../views/public"), staticOptions
 
 // Serve favicon.ico using the icon.avif file
 app.get("/favicon.ico", (req, res) => {
-  // Set caching headers for favicon (7 days, no immutable)
   res.set('Cache-Control', 'public, max-age=604800');
   res.sendFile(path.join(__dirname, "../../views/public/icon.avif"));
 });
