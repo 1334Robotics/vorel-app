@@ -671,6 +671,7 @@
     
     return "TBD";
   }
+
   function getStatusClass(status) {
     if (!status) return 'status-default';
     
@@ -681,32 +682,4 @@
     if (statusLower.includes('completed')) return 'status-completed';
     return 'status-default';
   }
-
-  // Console function to force polling mode - call forcePolling() in browser console
-  window.forcePolling = function() {
-    console.log('Forcing polling mode...');
-    
-    // Close SSE connection if it exists
-    if (eventSource) {
-      console.log('Closing SSE connection');
-      eventSource.close();
-      eventSource = null;
-    }
-    
-    // Enable polling mode
-    fallbackToPolling = true;
-    reconnectAttempts = maxReconnectAttempts; // Prevent SSE reconnection
-    
-    // Update status
-    const updateStatus = document.getElementById('update-status');
-    if (updateStatus) {
-      updateStatus.innerHTML = 'Forced polling mode active';
-    }
-    
-    // Start polling immediately
-    console.log('Starting polling...');
-    checkForUpdates();
-    
-    return 'Polling mode activated! Updates will now use the traditional polling method.';
-  };
 </script>
