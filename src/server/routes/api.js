@@ -13,16 +13,10 @@ console.log('SSE routes loaded');
 
 // Health endpoint for Docker healthchecks
 router.get('/health', (req, res) => {
-  res.status(200).send('Alive!');
+  res.status(200).json({ status: 'ok', timestamp: Date.now(), uptime: process.uptime() });
 });
 
-// Test endpoint to verify SSE setup
-router.get('/test-sse', (req, res) => {
-  console.log('SSE test endpoint hit');
-  res.json({ message: 'SSE endpoints ready', timestamp: Date.now() });
-});
-
-// Debug endpoint to check active SSE connections
+// Endpoint to check active SSE connections 
 router.get('/sse-stats', (req, res) => {
   const totalConnections = sseConnections.size;
   const connectionsByEvent = {};
@@ -30,9 +24,16 @@ router.get('/sse-stats', (req, res) => {
   for (const [connectionId, connection] of sseConnections.entries()) {
     const key = `${connection.eventKey}-${connection.teamKey}`;
     if (!connectionsByEvent[key]) {
-      connectionsByEvent[key] = 0;
+      connectionsByEvent[key] = {
+        count: 0,
+        oldestConnection: connection.connectedAt
+      };
     }
-    connectionsByEvent[key]++;
+    connectionsByEvent[key].count++;
+    connectionsByEvent[key].oldestConnection = Math.min(
+      connectionsByEvent[key].oldestConnection, 
+      connection.connectedAt
+    );
   }
   
   res.json({
