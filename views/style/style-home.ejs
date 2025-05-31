@@ -457,6 +457,43 @@
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   }
   
+  .api-update-notice {
+    background-color: rgba(33, 150, 243, 0.15);
+    border-left: 4px solid #2196f3;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 24px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  }
+  
+  .api-update-notice .notice-content h3 {
+    margin-top: 0;
+    color: #64b5f6;
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+  }
+  
+  .api-update-notice .notice-content p {
+    margin-bottom: 8px;
+    color: #f0f0f0;
+    line-height: 1.5;
+  }
+  
+  .api-update-notice .notice-content p:last-child {
+    margin-bottom: 0;
+  }
+  
+  .api-update-notice .notice-content a {
+    color: #64b5f6;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-bottom-color 0.2s ease;
+  }
+  
+  .api-update-notice .notice-content a:hover {
+    border-bottom-color: #64b5f6;
+  }
+  
   .notice-content h3 {
     margin-top: 0;
     color: #68db6d;
@@ -472,6 +509,10 @@
   
   @media (max-width: 768px) {
     .championship-notice {
+      padding: 12px 16px;
+    }
+    
+    .api-update-notice {
       padding: 12px 16px;
     }
   }
