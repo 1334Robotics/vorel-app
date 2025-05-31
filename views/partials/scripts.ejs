@@ -182,11 +182,230 @@
       card.classList.remove('active');
       saveOpenMatches();
     }
+  }  // SSE connection for real-time updates
+  let eventSource = null;
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 5;
+  let fallbackToPolling = false;
+  let isConnecting = false;
+  let lastHeartbeatTime = 0;
+  let heartbeatWatchdog = null;
+  let successfulPollingCount = 0;
+
+  function startHeartbeatWatchdog() {
+    // Clear existing watchdog
+    if (heartbeatWatchdog) {
+      clearInterval(heartbeatWatchdog);
+    }
+      // Check every 15 seconds (server sends heartbeat every 30 seconds)
+    heartbeatWatchdog = setInterval(() => {
+      const now = Date.now();
+      const timeSinceLastHeartbeat = now - lastHeartbeatTime;
+      
+      // If no heartbeat for 45 seconds, assume connection is dead
+      if (lastHeartbeatTime > 0 && timeSinceLastHeartbeat > 45000) {
+        console.log('SSE connection appears dead - no heartbeat for', Math.round(timeSinceLastHeartbeat/1000), 'seconds');
+        
+        // Force close the connection and trigger reconnection
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+        
+        // Clear the watchdog
+        clearInterval(heartbeatWatchdog);
+        heartbeatWatchdog = null;
+        
+        // Reset connection state
+        isConnecting = false;
+        lastHeartbeatTime = 0;
+        
+        // Trigger reconnection
+        const updateStatus = document.getElementById('update-status');
+        if (updateStatus) {
+          updateStatus.innerHTML = 'Connection lost. Attempting to reconnect...';
+        }
+          // Start reconnection with faster backoff
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          const delay = Math.min(1000 * reconnectAttempts, 5000); // Faster reconnection
+          setTimeout(() => {
+            initializeSSE();
+          }, delay);
+        } else {
+          console.log('SSE failed after max attempts, falling back to polling');
+          if (updateStatus) {
+            updateStatus.innerHTML = 'SSE disconnected, to reconnect <a href="#" onclick="location.reload(); return false;" style="color: #2196F3; text-decoration: underline; cursor: pointer;">refresh</a>';
+          }
+          fallbackToPolling = true;
+          setTimeout(checkForUpdates, 5000);        }
+      }
+    }, 15000); // Check every 15 seconds for faster detection
+  }function initializeSSE() {
+    const updateStatus = document.getElementById('update-status');
+    const hashDisplay = document.getElementById('hash-display');
+    
+    // Prevent multiple simultaneous connection attempts
+    if (isConnecting) {
+      console.log('SSE connection attempt already in progress');
+      return;
+    }
+    
+    isConnecting = true;
+    
+    // Clear existing heartbeat watchdog
+    if (heartbeatWatchdog) {
+      clearInterval(heartbeatWatchdog);
+      heartbeatWatchdog = null;
+    }
+    lastHeartbeatTime = 0;
+    
+    // Close existing connection if any
+    if (eventSource) {
+      console.log('Closing existing SSE connection');
+      eventSource.close();
+    }
+
+    const sseUrl = '/api/updates-stream?eventKey=' + encodeURIComponent('<%= eventKey %>') 
+      + '&teamKey=' + encodeURIComponent('<%= formattedTeamKey %>');
+    
+    console.log('Attempting SSE connection to:', sseUrl);
+    eventSource = new EventSource(sseUrl);
+    
+    eventSource.onopen = function() {
+      console.log('SSE connection opened successfully');
+      isConnecting = false;
+      reconnectAttempts = 0;
+      fallbackToPolling = false;
+      updateStatus.innerHTML = 'Connected to real-time updates';
+    };
+    
+    eventSource.onmessage = function(event) {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('SSE message received:', data.type);        if (data.type === 'connected') {
+          console.log('SSE connected successfully');
+          updateStatus.innerHTML = 'Real-time updates active';
+          lastHeartbeatTime = Date.now(); // Mark connection time
+          successfulPollingCount = 0; // Reset polling count since SSE is working
+          startHeartbeatWatchdog(); // Start monitoring
+          // Initialize hash display if provided
+          if (data.hash && hashDisplay) {
+            currentDataHash = data.hash;
+            const shortHash = currentDataHash.substring(0, 8);
+            hashDisplay.innerHTML = 'Hash: ' + shortHash;
+          }        } else if (data.type === 'update') {
+          console.log('Received update via SSE');
+          lastHeartbeatTime = Date.now(); // Reset heartbeat timer on any message
+          // Update hash display with the hash from SSE
+          if (data.hash && hashDisplay) {
+            currentDataHash = data.hash;
+            const shortHash = currentDataHash.substring(0, 8);
+            hashDisplay.innerHTML = 'Hash: ' + shortHash;
+          }
+          handleRealtimeUpdate();        } else if (data.type === 'heartbeat') {
+          // Update last seen timestamp and reset watchdog
+          lastHeartbeatTime = Date.now();
+          const lastChecked = getSyncedTime().toLocaleTimeString();
+          updateStatus.innerHTML = 'Data provided by FIRST Nexus & TBA APIs' + ' • Last update: ' + lastChecked;
+          // Update hash display if available
+          if (data.hash && hashDisplay) {
+            currentDataHash = data.hash;
+            const shortHash = currentDataHash.substring(0, 8);
+            hashDisplay.innerHTML = 'Hash: ' + shortHash;
+          }
+          checkClockSync(data.timestamp);
+        }
+      } catch (error) {
+        console.error('Error parsing SSE data:', error);
+      }
+    };    eventSource.onerror = function(error) {
+      console.error('SSE error:', error);
+      isConnecting = false;
+      
+      // Clear the heartbeat watchdog on error
+      if (heartbeatWatchdog) {
+        clearInterval(heartbeatWatchdog);
+        heartbeatWatchdog = null;
+      }
+      lastHeartbeatTime = 0;
+      
+      updateStatus.innerHTML = 'Connection error. Attempting to reconnect...';
+      
+      if (reconnectAttempts < maxReconnectAttempts) {
+        reconnectAttempts++;
+        const delay = Math.min(1000 * reconnectAttempts, 10000); // Cap at 10 seconds
+        console.log(`Will reconnect SSE in ${delay}ms (attempt ${reconnectAttempts})`);
+        setTimeout(() => {
+          console.log(`Reconnecting SSE (attempt ${reconnectAttempts})`);
+          initializeSSE();
+        }, delay);
+      } else {
+        console.log('SSE failed after max attempts, falling back to polling');
+        updateStatus.innerHTML = 'SSE disconnected, to reconnect <a href="#" onclick="location.reload(); return false;" style="color: #2196F3; text-decoration: underline; cursor: pointer;">refresh</a>';
+        fallbackToPolling = true;
+        setTimeout(checkForUpdates, 5000);
+      }
+    };
   }
-  
+
+  async function handleRealtimeUpdate() {
+    const updateStatus = document.getElementById('update-status');
+    
+    try {
+      console.log('Handling realtime update');
+      // Fetch the processed match data
+      const response = await fetch('/api/current-matches?eventKey=' + encodeURIComponent('<%= eventKey %>') 
+        + '&teamKey=' + encodeURIComponent('<%= formattedTeamKey %>'));
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch current matches');
+      }
+      
+      const data = await response.json();
+      console.log('Received updated match data');
+      
+      // Save currently open matches
+      saveOpenMatches();
+      
+      // Update the UI with new data
+      updateMatchesUI(data);
+      updateEventInfo(data.nowQueuing);
+      updateTeamRanking(data.teamRanking);
+      
+      // Check if the auto-opened match is now completed
+      if (autoOpenedMatchId && isMatchCompleted(autoOpenedMatchId)) {
+        closeMatchCard(autoOpenedMatchId);
+        autoOpenedMatchId = null;
+        
+        // Automatically open the next match card
+        const nextMatchCard = openNextMatchCard();
+        if (nextMatchCard) {
+          autoOpenedMatchId = nextMatchCard.id;
+        }
+      }
+      
+      // Restore open matches
+      restoreOpenMatches();
+      
+      const lastChecked = getSyncedTime().toLocaleTimeString();
+      updateStatus.innerHTML = 'Data provided by FIRST Nexus & TBA APIs' + ' • Last update: ' + lastChecked;
+      
+    } catch (error) {
+      console.error('Error handling realtime update:', error);
+      updateStatus.innerHTML = 'Update failed. Retrying...';
+    }
+  }
+  // Fallback polling function (used if SSE fails)
   async function checkForUpdates() {
     const updateStatus = document.getElementById('update-status');
     const hashDisplay = document.getElementById('hash-display');
+    
+    // Don't run polling if SSE is working
+    if (!fallbackToPolling) {
+      return;
+    }
+    
     try {
       updateStatus.innerHTML = 'Checking for updates...';
       const response = await fetch('/api/data-check?eventKey=' + encodeURIComponent('<%= eventKey %>') 
@@ -198,11 +417,29 @@
       if (data.timestamp) {
         checkClockSync(data.timestamp);
       }
-      
-      if (data.changed) {
-        saveOpenMatches();
-        updateStatus.innerHTML = 'New data available! Refreshing...';
-        setTimeout(() => window.location.reload(), 500);
+        if (data.changed) {
+        console.log('Polling detected changes, updating UI');
+        handleRealtimeUpdate();
+        
+        // Network is working again, try to re-establish SSE connection
+        if (fallbackToPolling) {
+          console.log('Network appears to be working, attempting to re-establish SSE connection');
+          fallbackToPolling = false; // Stop polling
+          reconnectAttempts = 0; // Reset reconnection attempts
+          
+          // Clear any existing update timer
+          if (updateTimer) {
+            clearTimeout(updateTimer);
+            updateTimer = null;
+          }
+          
+          // Try to reconnect to SSE
+          setTimeout(() => {
+            initializeSSE();
+          }, 1000); // Small delay to let the current update finish
+          
+          return; // Don't continue with polling
+        }
       } else {
         // Check if the auto-opened match is now completed
         if (autoOpenedMatchId && isMatchCompleted(autoOpenedMatchId)) {
@@ -215,43 +452,127 @@
             autoOpenedMatchId = nextMatchCard.id;
           }
         }
-        
-        currentDataHash = data.hash;
+          currentDataHash = data.hash;
         const shortHash = currentDataHash.substring(0, 8);
         const lastChecked = getSyncedTime().toLocaleTimeString();
         updateStatus.innerHTML = 'Data provided by FIRST Nexus & TBA APIs' + ' • Last checked: ' + lastChecked;
-        hashDisplay.innerHTML = 'Hash: ' + shortHash;
-        updateTimer = setTimeout(checkForUpdates, checkInterval);
+        if (hashDisplay) hashDisplay.innerHTML = 'Hash: ' + shortHash;
+        
+        // Track successful polling - try to reconnect to SSE after a few successful polls
+        if (fallbackToPolling) {
+          successfulPollingCount++;
+          if (successfulPollingCount >= 3) { // After 3 successful polls, try SSE again
+            console.log('Network stable, attempting to re-establish SSE connection');
+            fallbackToPolling = false;
+            reconnectAttempts = 0;
+            successfulPollingCount = 0;
+            
+            // Clear any existing update timer
+            if (updateTimer) {
+              clearTimeout(updateTimer);
+              updateTimer = null;
+            }
+            
+            // Try to reconnect to SSE
+            setTimeout(() => {
+              initializeSSE();
+            }, 1000);
+            
+            return; // Don't continue with polling
+          }
+        }
       }
-    } catch (error) {
+      
+      // Continue polling if we're in fallback mode
+      if (fallbackToPolling) {
+        updateTimer = setTimeout(checkForUpdates, checkInterval);
+      }    } catch (error) {
       console.error('Error checking for updates:', error);
       updateStatus.innerHTML = 'Update check failed. Retrying soon...';
-      updateTimer = setTimeout(checkForUpdates, checkInterval * 2);
+      
+      // Reset successful polling count on error
+      successfulPollingCount = 0;
+      
+      if (fallbackToPolling) {
+        updateTimer = setTimeout(checkForUpdates, checkInterval * 2);
+      }
     }
   }
-  
-  document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM fully loaded');
+
+  // Function to fetch initial hash on page load
+  async function fetchInitialHash() {
+    const hashDisplay = document.getElementById('hash-display');
     
-    // First restore any previously open matches
-    // We're not doing this anymore to ensure our auto-open logic works cleanly
-    // restoreOpenMatches();
+    try {
+      const response = await fetch('/api/data-check?eventKey=' + encodeURIComponent('<%= eventKey %>') 
+        + '&teamKey=' + encodeURIComponent('<%= formattedTeamKey %>') 
+        + '&lastUpdate=');
+      const data = await response.json();
+      
+      if (data.hash && hashDisplay) {
+        currentDataHash = data.hash;
+        const shortHash = currentDataHash.substring(0, 8);
+        hashDisplay.innerHTML = 'Hash: ' + shortHash;
+      }
+    } catch (error) {
+      console.error('Error fetching initial hash:', error);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM fully loaded - Initializing match system');
     
     // Wait a short time to ensure all elements are fully rendered
     setTimeout(() => {
       initializeMatchDisplay();
     }, 100);
-    
-    setTimeout(checkForUpdates, 1000);
+      // Try SSE first, with fallback to polling
+    setTimeout(() => {
+      console.log('Initializing update system...');
+      
+      // Fetch initial hash
+      fetchInitialHash();
+      
+      // Check if SSE is supported
+      if (typeof(EventSource) !== "undefined") {
+        console.log('SSE supported, attempting connection');
+        initializeSSE();
+      } else {
+        console.log('SSE not supported, falling back to polling');
+        fallbackToPolling = true;
+        checkForUpdates();
+      }
+    }, 1000);
     
     // Start clock updates
     updateSyncedClock();
     setInterval(updateSyncedClock, 1000);
-    
+      // Handle page visibility changes
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
+        console.log('Page visible, reconnecting if needed');
+        // Only reconnect SSE if it was actually disconnected and we're not using polling
+        if (!fallbackToPolling && eventSource && eventSource.readyState === EventSource.CLOSED) {
+          console.log('Reconnecting SSE after page became visible');
+          initializeSSE();
+        }
+      } else {
+        console.log('Page hidden, keeping SSE connection alive');
+        // Don't close SSE connection when page is hidden - let it stay alive
+        // Only clear polling timers if they exist
+        if (updateTimer) {
+          clearTimeout(updateTimer);
+        }
+      }
+    });
+    
+    // Handle page unload
+    window.addEventListener('beforeunload', () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (updateTimer) {
         clearTimeout(updateTimer);
-        checkForUpdates();
       }
     });
   });
@@ -300,7 +621,7 @@
         }
       } else {
         console.log("Empty or null timestamp");
-        el.textContent = "TBD";
+        el.textContent = "TBD [No Time]";
       }
     });
   }
@@ -310,4 +631,173 @@
     console.log("DOM loaded, formatting timestamps");
     formatAllTimestamps();
   });
+  
+  // UI update functions for SSE
+  function updateMatchesUI(data) {
+    const matchesColumn = document.querySelector('.matches-column .content');
+    if (!matchesColumn) return;
+
+    // Generate new HTML for matches
+    let newHTML = '';
+    
+    // Handle empty matches case
+    if (Object.keys(data.matchGroups).length === 0 && data.completedMatches.length === 0) {
+      newHTML = `
+        <div class="no-matches">
+          <p>No matches found for team <%= formattedTeamKey %></p>
+        </div>
+      `;
+    } else {
+      // Active/Upcoming Matches
+      Object.keys(data.matchGroups).forEach(groupType => {
+        newHTML += generateMatchGroupHTML(groupType, data.matchGroups[groupType], false);
+      });
+      
+      // Completed Matches
+      if (data.completedMatches.length > 0) {
+        newHTML += generateMatchGroupHTML('Completed', data.completedMatches, true);
+      }
+    }
+    
+    matchesColumn.innerHTML = newHTML;
+    
+    // Re-run timestamp formatting for new content
+    formatAllTimestamps();
+  }
+
+  function updateEventInfo(nowQueuing) {
+    const nowQueuingElement = document.querySelector('.now-queuing');
+    if (nowQueuingElement && nowQueuing) {
+      nowQueuingElement.textContent = 'Now Queuing: ' + nowQueuing;
+    }
+  }
+
+  function updateTeamRanking(teamRanking) {
+    if (!teamRanking) return;
+    
+    const rankElement = document.querySelector('.stat-card .stat-value');
+    const recordElement = document.querySelectorAll('.stat-card .stat-value')[1];
+    const matchesPlayedElement = document.querySelectorAll('.stat-card .stat-value')[2];
+    
+    if (rankElement) rankElement.textContent = '#' + teamRanking.rank;
+    if (recordElement) recordElement.textContent = teamRanking.record;
+    if (matchesPlayedElement) matchesPlayedElement.textContent = teamRanking.matchesPlayed || "N/A";
+  }
+
+  function generateMatchGroupHTML(groupType, matches, isCompletedGroup) {
+    if (!matches || matches.length === 0) return '';
+    
+    const formattedTeamKey = '<%= formattedTeamKey %>';
+    
+    let html = `
+      <div class="match-group">
+        <div class="match-group-title">${groupType}</div>
+        <div class="match-group-content">
+    `;
+    
+    matches.forEach(match => {
+      const redTeams = match.redTeams || [];
+      const blueTeams = match.blueTeams || [];
+      const isTeamInMatch = redTeams.includes(formattedTeamKey) || blueTeams.includes(formattedTeamKey);
+      const alliance = redTeams.includes(formattedTeamKey) ? 'red' : 'blue';
+      
+      const matchId = match.label.replace(/\s+/g, '-');
+      
+      html += `
+        <div id="${matchId}" class="match-card ${isTeamInMatch ? 'team-match' : ''} ${isCompletedGroup ? 'completed' : ''}" onclick="toggleMatch('${matchId}')">
+          <div class="match-header">
+            <div class="match-info">
+              <span class="match-name">${match.label}</span>
+              <span class="match-time" data-timestamp="${match.times?.scheduledStartTime || ''}">
+                ${formatMatchTime(match.times?.scheduledStartTime)}
+              </span>
+            </div>
+            <div class="match-status ${getStatusClass(match.status)}">${match.status}</div>
+          </div>
+          
+          <div class="match-details">
+            <div class="alliances">
+              <div class="alliance red">
+                <div class="alliance-label">Red Alliance</div>
+                <div class="teams">
+                  ${redTeams.map(team => `
+                    <span class="team ${team === formattedTeamKey ? 'highlighted' : ''}">${team}</span>
+                  `).join('')}
+                </div>
+                ${match.scores?.red !== undefined ? `<div class="score">${match.scores.red}</div>` : ''}
+              </div>
+              
+              <div class="alliance blue">
+                <div class="alliance-label">Blue Alliance</div>
+                <div class="teams">
+                  ${blueTeams.map(team => `
+                    <span class="team ${team === formattedTeamKey ? 'highlighted' : ''}">${team}</span>
+                  `).join('')}
+                </div>
+                ${match.scores?.blue !== undefined ? `<div class="score">${match.scores.blue}</div>` : ''}
+              </div>
+            </div>
+            
+            ${match.rankingPoints ? `
+              <div class="ranking-points">
+                <div class="rp-section red">
+                  <span class="rp-label">Red RP:</span>
+                  <span class="rp-value">${match.rankingPoints.red}</span>
+                </div>
+                <div class="rp-section blue">
+                  <span class="rp-label">Blue RP:</span>
+                  <span class="rp-value">${match.rankingPoints.blue}</span>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    });
+    
+    html += `
+        </div>
+      </div>
+    `;
+    
+    return html;
+  }
+
+  function formatMatchTime(timestamp) {
+    if (!timestamp || timestamp === "null" || timestamp === "undefined" || timestamp === "") {
+      return "TBD";
+    }
+    
+    try {
+      let date;
+      if (!isNaN(timestamp) && timestamp.length > 10) {
+        date = new Date(parseInt(timestamp));
+      } else {
+        date = new Date(timestamp);
+      }
+      
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+    } catch (e) {
+      console.error("Error formatting timestamp:", timestamp, e);
+    }
+    
+    return "TBD";
+  }
+
+  function getStatusClass(status) {
+    if (!status) return 'status-default';
+    
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('queuing')) return 'status-queuing';
+    if (statusLower.includes('deck')) return 'status-on-deck';
+    if (statusLower.includes('field')) return 'status-on-field';
+    if (statusLower.includes('completed')) return 'status-completed';
+    return 'status-default';
+  }
 </script>
