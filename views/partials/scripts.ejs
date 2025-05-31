@@ -187,7 +187,61 @@
   let reconnectAttempts = 0;
   const maxReconnectAttempts = 5;
   let fallbackToPolling = false;
-  let isConnecting = false;  function initializeSSE() {
+  let isConnecting = false;
+  let lastHeartbeatTime = 0;
+  let heartbeatWatchdog = null;
+  let successfulPollingCount = 0;
+
+  function startHeartbeatWatchdog() {
+    // Clear existing watchdog
+    if (heartbeatWatchdog) {
+      clearInterval(heartbeatWatchdog);
+    }
+      // Check every 15 seconds (server sends heartbeat every 30 seconds)
+    heartbeatWatchdog = setInterval(() => {
+      const now = Date.now();
+      const timeSinceLastHeartbeat = now - lastHeartbeatTime;
+      
+      // If no heartbeat for 45 seconds, assume connection is dead
+      if (lastHeartbeatTime > 0 && timeSinceLastHeartbeat > 45000) {
+        console.log('SSE connection appears dead - no heartbeat for', Math.round(timeSinceLastHeartbeat/1000), 'seconds');
+        
+        // Force close the connection and trigger reconnection
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+        
+        // Clear the watchdog
+        clearInterval(heartbeatWatchdog);
+        heartbeatWatchdog = null;
+        
+        // Reset connection state
+        isConnecting = false;
+        lastHeartbeatTime = 0;
+        
+        // Trigger reconnection
+        const updateStatus = document.getElementById('update-status');
+        if (updateStatus) {
+          updateStatus.innerHTML = 'Connection lost. Attempting to reconnect...';
+        }
+          // Start reconnection with faster backoff
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          const delay = Math.min(1000 * reconnectAttempts, 5000); // Faster reconnection
+          setTimeout(() => {
+            initializeSSE();
+          }, delay);
+        } else {
+          console.log('SSE failed after max attempts, falling back to polling');
+          if (updateStatus) {
+            updateStatus.innerHTML = 'SSE disconnected, to reconnect <a href="#" onclick="location.reload(); return false;" style="color: #2196F3; text-decoration: underline; cursor: pointer;">refresh</a>';
+          }
+          fallbackToPolling = true;
+          setTimeout(checkForUpdates, 5000);        }
+      }
+    }, 15000); // Check every 15 seconds for faster detection
+  }function initializeSSE() {
     const updateStatus = document.getElementById('update-status');
     const hashDisplay = document.getElementById('hash-display');
     
@@ -198,6 +252,13 @@
     }
     
     isConnecting = true;
+    
+    // Clear existing heartbeat watchdog
+    if (heartbeatWatchdog) {
+      clearInterval(heartbeatWatchdog);
+      heartbeatWatchdog = null;
+    }
+    lastHeartbeatTime = 0;
     
     // Close existing connection if any
     if (eventSource) {
@@ -222,25 +283,29 @@
     eventSource.onmessage = function(event) {
       try {
         const data = JSON.parse(event.data);
-        console.log('SSE message received:', data.type);
-          if (data.type === 'connected') {
+        console.log('SSE message received:', data.type);        if (data.type === 'connected') {
           console.log('SSE connected successfully');
           updateStatus.innerHTML = 'Real-time updates active';
+          lastHeartbeatTime = Date.now(); // Mark connection time
+          successfulPollingCount = 0; // Reset polling count since SSE is working
+          startHeartbeatWatchdog(); // Start monitoring
           // Initialize hash display if provided
           if (data.hash && hashDisplay) {
             currentDataHash = data.hash;
             const shortHash = currentDataHash.substring(0, 8);
             hashDisplay.innerHTML = 'Hash: ' + shortHash;
-          }} else if (data.type === 'update') {
-          console.log('Received update via SSE');          // Update hash display with the hash from SSE
+          }        } else if (data.type === 'update') {
+          console.log('Received update via SSE');
+          lastHeartbeatTime = Date.now(); // Reset heartbeat timer on any message
+          // Update hash display with the hash from SSE
           if (data.hash && hashDisplay) {
             currentDataHash = data.hash;
             const shortHash = currentDataHash.substring(0, 8);
             hashDisplay.innerHTML = 'Hash: ' + shortHash;
           }
-          handleRealtimeUpdate();
-        } else if (data.type === 'heartbeat') {
-          // Update last seen timestamp
+          handleRealtimeUpdate();        } else if (data.type === 'heartbeat') {
+          // Update last seen timestamp and reset watchdog
+          lastHeartbeatTime = Date.now();
           const lastChecked = getSyncedTime().toLocaleTimeString();
           updateStatus.innerHTML = 'Data provided by FIRST Nexus & TBA APIs' + ' • Last update: ' + lastChecked;
           // Update hash display if available
@@ -254,10 +319,17 @@
       } catch (error) {
         console.error('Error parsing SSE data:', error);
       }
-    };
-      eventSource.onerror = function(error) {
+    };    eventSource.onerror = function(error) {
       console.error('SSE error:', error);
       isConnecting = false;
+      
+      // Clear the heartbeat watchdog on error
+      if (heartbeatWatchdog) {
+        clearInterval(heartbeatWatchdog);
+        heartbeatWatchdog = null;
+      }
+      lastHeartbeatTime = 0;
+      
       updateStatus.innerHTML = 'Connection error. Attempting to reconnect...';
       
       if (reconnectAttempts < maxReconnectAttempts) {
@@ -270,7 +342,7 @@
         }, delay);
       } else {
         console.log('SSE failed after max attempts, falling back to polling');
-        updateStatus.innerHTML = 'Using fallback updates...';
+        updateStatus.innerHTML = 'SSE disconnected, to reconnect <a href="#" onclick="location.reload(); return false;" style="color: #2196F3; text-decoration: underline; cursor: pointer;">refresh</a>';
         fallbackToPolling = true;
         setTimeout(checkForUpdates, 5000);
       }
@@ -345,10 +417,29 @@
       if (data.timestamp) {
         checkClockSync(data.timestamp);
       }
-      
-      if (data.changed) {
+        if (data.changed) {
         console.log('Polling detected changes, updating UI');
         handleRealtimeUpdate();
+        
+        // Network is working again, try to re-establish SSE connection
+        if (fallbackToPolling) {
+          console.log('Network appears to be working, attempting to re-establish SSE connection');
+          fallbackToPolling = false; // Stop polling
+          reconnectAttempts = 0; // Reset reconnection attempts
+          
+          // Clear any existing update timer
+          if (updateTimer) {
+            clearTimeout(updateTimer);
+            updateTimer = null;
+          }
+          
+          // Try to reconnect to SSE
+          setTimeout(() => {
+            initializeSSE();
+          }, 1000); // Small delay to let the current update finish
+          
+          return; // Don't continue with polling
+        }
       } else {
         // Check if the auto-opened match is now completed
         if (autoOpenedMatchId && isMatchCompleted(autoOpenedMatchId)) {
@@ -361,23 +452,50 @@
             autoOpenedMatchId = nextMatchCard.id;
           }
         }
-        
-        currentDataHash = data.hash;
+          currentDataHash = data.hash;
         const shortHash = currentDataHash.substring(0, 8);
         const lastChecked = getSyncedTime().toLocaleTimeString();
         updateStatus.innerHTML = 'Data provided by FIRST Nexus & TBA APIs' + ' • Last checked: ' + lastChecked;
         if (hashDisplay) hashDisplay.innerHTML = 'Hash: ' + shortHash;
+        
+        // Track successful polling - try to reconnect to SSE after a few successful polls
+        if (fallbackToPolling) {
+          successfulPollingCount++;
+          if (successfulPollingCount >= 3) { // After 3 successful polls, try SSE again
+            console.log('Network stable, attempting to re-establish SSE connection');
+            fallbackToPolling = false;
+            reconnectAttempts = 0;
+            successfulPollingCount = 0;
+            
+            // Clear any existing update timer
+            if (updateTimer) {
+              clearTimeout(updateTimer);
+              updateTimer = null;
+            }
+            
+            // Try to reconnect to SSE
+            setTimeout(() => {
+              initializeSSE();
+            }, 1000);
+            
+            return; // Don't continue with polling
+          }
+        }
       }
       
       // Continue polling if we're in fallback mode
       if (fallbackToPolling) {
         updateTimer = setTimeout(checkForUpdates, checkInterval);
-      }
-    } catch (error) {
+      }    } catch (error) {
       console.error('Error checking for updates:', error);
       updateStatus.innerHTML = 'Update check failed. Retrying soon...';
+      
+      // Reset successful polling count on error
+      successfulPollingCount = 0;
+      
       if (fallbackToPolling) {
-        updateTimer = setTimeout(checkForUpdates, checkInterval * 2);      }
+        updateTimer = setTimeout(checkForUpdates, checkInterval * 2);
+      }
     }
   }
 
