@@ -22,16 +22,42 @@ router.get('/test-sse', (req, res) => {
   res.json({ message: 'SSE endpoints ready', timestamp: Date.now() });
 });
 
+// Debug endpoint to check active SSE connections
+router.get('/sse-stats', (req, res) => {
+  const totalConnections = sseConnections.size;
+  const connectionsByEvent = {};
+  
+  for (const [connectionId, connection] of sseConnections.entries()) {
+    const key = `${connection.eventKey}-${connection.teamKey}`;
+    if (!connectionsByEvent[key]) {
+      connectionsByEvent[key] = 0;
+    }
+    connectionsByEvent[key]++;
+  }
+  
+  res.json({
+    totalConnections,
+    connectionsByEvent,
+    timestamp: Date.now()
+  });
+});
+
 // SSE endpoint for real-time updates
-router.get('/updates-stream', (req, res) => {
+router.get('/updates-stream', async (req, res) => {
   const { eventKey: rawEventKey, teamKey } = req.query;
   const eventKey = rawEventKey ? rawEventKey.toLowerCase() : rawEventKey;
 
+  console.log(`SSE connection attempt: eventKey=${eventKey}, teamKey=${teamKey}`);
+
   if (!teamKey || !eventKey) {
+    console.log('SSE connection rejected: missing eventKey or teamKey');
     return res.status(400).json({ error: "Missing eventKey or teamKey" });
   }
 
-  const connectionId = `${eventKey}-${teamKey}`;
+  // Create unique connection ID per user session using random UUID
+  const sessionId = crypto.randomUUID();
+  const connectionId = `${eventKey}-${teamKey}-${sessionId}`;
+  console.log(`Establishing SSE connection: ${connectionId}`);
   
   // Set SSE headers
   res.writeHead(200, {
@@ -40,23 +66,84 @@ router.get('/updates-stream', (req, res) => {
     'Connection': 'keep-alive',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Cache-Control'
-  });
-
-  // Send initial connection confirmation
-  res.write(`data: ${JSON.stringify({ type: 'connected', timestamp: Date.now() })}\n\n`);
-
+  });  // Send initial connection confirmation with current hash
+  try {
+    const currentHash = await getDataHash(eventKey, teamKey);
+    res.write(`data: ${JSON.stringify({ 
+      type: 'connected', 
+      timestamp: Date.now(),
+      hash: currentHash 
+    })}\n\n`);
+  } catch (error) {
+    console.error('Error getting initial hash for SSE:', error);
+    // If hash fails, send connection without hash
+    res.write(`data: ${JSON.stringify({ type: 'connected', timestamp: Date.now() })}\n\n`);
+  }
   // Store connection
-  sseConnections.set(connectionId, { res, eventKey, teamKey });
-
-  // Handle client disconnect
-  req.on('close', () => {
+  sseConnections.set(connectionId, { res, eventKey, teamKey, connectedAt: Date.now() });
+  
+  // Log concurrent connections for this event+team
+  const sameEventConnections = Array.from(sseConnections.entries())
+    .filter(([id, conn]) => conn.eventKey === eventKey && conn.teamKey === teamKey);
+  console.log(`Active SSE connections for ${eventKey}-${teamKey}: ${sameEventConnections.length}`);  // Handle client disconnect
+  req.on('close', () => {    console.log(`SSE client disconnected: ${connectionId}`);
+    const connection = sseConnections.get(connectionId);
+    sseConnections.delete(connectionId);
+    
+    // Log remaining connections for this event+team
+    if (connection) {
+      const remainingConnections = Array.from(sseConnections.entries())
+        .filter(([id, conn]) => conn.eventKey === connection.eventKey && conn.teamKey === connection.teamKey);
+      console.log(`Remaining SSE connections for ${connection.eventKey}-${connection.teamKey}: ${remainingConnections.length}`);
+    }
+  });
+  // Handle connection errors (ignore aborts from tab closing)
+  req.on('error', (error) => {
+    // Ignore abort errors - these happen when user closes tab/navigates away
+    if (error.code === 'ECONNABORTED' || error.code === 'ECONNRESET' || error.message.includes('aborted')) {
+      console.log(`SSE connection naturally closed: ${connectionId}`);
+    } else {
+      console.error(`SSE connection error for ${connectionId}:`, error);
+    }
     sseConnections.delete(connectionId);
   });
 
-  // Keep connection alive
-  const keepAlive = setInterval(() => {
+  res.on('error', (error) => {
+    // Ignore abort errors - these happen when user closes tab/navigates away
+    if (error.code === 'ECONNABORTED' || error.code === 'ECONNRESET' || error.message.includes('aborted')) {
+      console.log(`SSE response naturally closed: ${connectionId}`);
+    } else {
+      console.error(`SSE response error for ${connectionId}:`, error);
+    }
+    sseConnections.delete(connectionId);
+  });// Keep connection alive
+  const keepAlive = setInterval(async () => {
     if (sseConnections.has(connectionId)) {
-      res.write(`data: ${JSON.stringify({ type: 'heartbeat', timestamp: Date.now() })}\n\n`);
+      try {
+        // Get current hash for heartbeat
+        const currentHash = await getDataHash(eventKey, teamKey);
+        res.write(`data: ${JSON.stringify({ 
+          type: 'heartbeat', 
+          timestamp: Date.now(),
+          hash: currentHash 
+        })}\n\n`);
+      } catch (error) {
+        console.error('Error in SSE heartbeat:', error);
+        // If hash fails, send heartbeat without hash
+        try {
+          res.write(`data: ${JSON.stringify({ type: 'heartbeat', timestamp: Date.now() })}\n\n`);        } catch (writeError) {
+          // Ignore write errors from aborted connections (tab closing)
+          if (writeError.code === 'ECONNABORTED' || writeError.code === 'ECONNRESET' || 
+              writeError.message.includes('aborted') || writeError.message.includes('closed')) {
+            console.log(`SSE heartbeat connection naturally closed: ${connectionId}`);
+          } else {
+            console.error('Error writing heartbeat:', writeError);
+          }
+          // Connection is broken, clean up
+          sseConnections.delete(connectionId);
+          clearInterval(keepAlive);
+        }
+      }
     } else {
       clearInterval(keepAlive);
     }
@@ -74,19 +161,37 @@ async function checkAndNotifyUpdates() {
       // Get current data hash
       const currentHash = await getDataHash(eventKey, teamKey);
       const lastHash = lastDataHashes.get(connectionId);
-      
-      // Only send update if data has actually changed
+        // Only send update if data has actually changed
       if (currentHash && currentHash !== lastHash) {
         lastDataHashes.set(connectionId, currentHash);
         
-        res.write(`data: ${JSON.stringify({ 
-          type: 'update', 
-          hash: currentHash,
-          timestamp: Date.now() 
-        })}\n\n`);
+        try {
+          res.write(`data: ${JSON.stringify({ 
+            type: 'update', 
+            hash: currentHash,
+            timestamp: Date.now() 
+          })}\n\n`);
+        } catch (writeError) {
+          // Ignore write errors from aborted connections (tab closing)
+          if (writeError.code === 'ECONNABORTED' || writeError.code === 'ECONNRESET' || 
+              writeError.message.includes('aborted') || writeError.message.includes('closed')) {
+            console.log(`SSE update connection naturally closed: ${connectionId}`);
+          } else {
+            console.error(`Error writing update to ${connectionId}:`, writeError);
+          }
+          // Remove the failed connection
+          sseConnections.delete(connectionId);
+          lastDataHashes.delete(connectionId);
+          continue;
+        }
+      }    } catch (error) {
+      // Ignore errors from aborted connections (tab closing)
+      if (error.code === 'ECONNABORTED' || error.code === 'ECONNRESET' || 
+          error.message.includes('aborted') || error.message.includes('closed')) {
+        console.log(`SSE update check connection naturally closed: ${connectionId}`);
+      } else {
+        console.error(`Error checking updates for ${connectionId}:`, error);
       }
-    } catch (error) {
-      console.error(`Error checking updates for ${connectionId}:`, error);
       // Remove failed connection
       sseConnections.delete(connectionId);
       lastDataHashes.delete(connectionId);

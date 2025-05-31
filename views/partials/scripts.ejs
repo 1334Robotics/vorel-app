@@ -182,18 +182,26 @@
       card.classList.remove('active');
       saveOpenMatches();
     }
-  }
-  // SSE connection for real-time updates
+  }  // SSE connection for real-time updates
   let eventSource = null;
   let reconnectAttempts = 0;
   const maxReconnectAttempts = 5;
   let fallbackToPolling = false;
-
-  function initializeSSE() {
+  let isConnecting = false;  function initializeSSE() {
     const updateStatus = document.getElementById('update-status');
     const hashDisplay = document.getElementById('hash-display');
     
+    // Prevent multiple simultaneous connection attempts
+    if (isConnecting) {
+      console.log('SSE connection attempt already in progress');
+      return;
+    }
+    
+    isConnecting = true;
+    
+    // Close existing connection if any
     if (eventSource) {
+      console.log('Closing existing SSE connection');
       eventSource.close();
     }
 
@@ -204,7 +212,8 @@
     eventSource = new EventSource(sseUrl);
     
     eventSource.onopen = function() {
-      console.log('SSE connection opened');
+      console.log('SSE connection opened successfully');
+      isConnecting = false;
       reconnectAttempts = 0;
       fallbackToPolling = false;
       updateStatus.innerHTML = 'Connected to real-time updates';
@@ -214,36 +223,53 @@
       try {
         const data = JSON.parse(event.data);
         console.log('SSE message received:', data.type);
-        
-        if (data.type === 'connected') {
+          if (data.type === 'connected') {
           console.log('SSE connected successfully');
           updateStatus.innerHTML = 'Real-time updates active';
-        } else if (data.type === 'update') {
-          console.log('Received update via SSE');
+          // Initialize hash display if provided
+          if (data.hash && hashDisplay) {
+            currentDataHash = data.hash;
+            const shortHash = currentDataHash.substring(0, 8);
+            hashDisplay.innerHTML = 'Hash: ' + shortHash;
+          }} else if (data.type === 'update') {
+          console.log('Received update via SSE');          // Update hash display with the hash from SSE
+          if (data.hash && hashDisplay) {
+            currentDataHash = data.hash;
+            const shortHash = currentDataHash.substring(0, 8);
+            hashDisplay.innerHTML = 'Hash: ' + shortHash;
+          }
           handleRealtimeUpdate();
         } else if (data.type === 'heartbeat') {
           // Update last seen timestamp
           const lastChecked = getSyncedTime().toLocaleTimeString();
           updateStatus.innerHTML = 'Data provided by FIRST Nexus & TBA APIs' + ' • Last update: ' + lastChecked;
+          // Update hash display if available
+          if (data.hash && hashDisplay) {
+            currentDataHash = data.hash;
+            const shortHash = currentDataHash.substring(0, 8);
+            hashDisplay.innerHTML = 'Hash: ' + shortHash;
+          }
           checkClockSync(data.timestamp);
         }
       } catch (error) {
         console.error('Error parsing SSE data:', error);
       }
     };
-    
-    eventSource.onerror = function(error) {
+      eventSource.onerror = function(error) {
       console.error('SSE error:', error);
+      isConnecting = false;
       updateStatus.innerHTML = 'Connection error. Attempting to reconnect...';
       
       if (reconnectAttempts < maxReconnectAttempts) {
         reconnectAttempts++;
+        const delay = Math.min(1000 * reconnectAttempts, 10000); // Cap at 10 seconds
+        console.log(`Will reconnect SSE in ${delay}ms (attempt ${reconnectAttempts})`);
         setTimeout(() => {
           console.log(`Reconnecting SSE (attempt ${reconnectAttempts})`);
           initializeSSE();
-        }, 1000 * reconnectAttempts);
+        }, delay);
       } else {
-        console.log('SSE failed, falling back to polling');
+        console.log('SSE failed after max attempts, falling back to polling');
         updateStatus.innerHTML = 'Using fallback updates...';
         fallbackToPolling = true;
         setTimeout(checkForUpdates, 5000);
@@ -351,10 +377,30 @@
       console.error('Error checking for updates:', error);
       updateStatus.innerHTML = 'Update check failed. Retrying soon...';
       if (fallbackToPolling) {
-        updateTimer = setTimeout(checkForUpdates, checkInterval * 2);
-      }
+        updateTimer = setTimeout(checkForUpdates, checkInterval * 2);      }
     }
   }
+
+  // Function to fetch initial hash on page load
+  async function fetchInitialHash() {
+    const hashDisplay = document.getElementById('hash-display');
+    
+    try {
+      const response = await fetch('/api/data-check?eventKey=' + encodeURIComponent('<%= eventKey %>') 
+        + '&teamKey=' + encodeURIComponent('<%= formattedTeamKey %>') 
+        + '&lastUpdate=');
+      const data = await response.json();
+      
+      if (data.hash && hashDisplay) {
+        currentDataHash = data.hash;
+        const shortHash = currentDataHash.substring(0, 8);
+        hashDisplay.innerHTML = 'Hash: ' + shortHash;
+      }
+    } catch (error) {
+      console.error('Error fetching initial hash:', error);
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM fully loaded - Initializing match system');
     
@@ -362,10 +408,12 @@
     setTimeout(() => {
       initializeMatchDisplay();
     }, 100);
-    
-    // Try SSE first, with fallback to polling
+      // Try SSE first, with fallback to polling
     setTimeout(() => {
       console.log('Initializing update system...');
+      
+      // Fetch initial hash
+      fetchInitialHash();
       
       // Check if SSE is supported
       if (typeof(EventSource) !== "undefined") {
@@ -381,22 +429,19 @@
     // Start clock updates
     updateSyncedClock();
     setInterval(updateSyncedClock, 1000);
-    
-    // Handle page visibility changes
+      // Handle page visibility changes
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         console.log('Page visible, reconnecting if needed');
-        // Reconnect SSE if page becomes visible and not using polling
-        if (!fallbackToPolling && (!eventSource || eventSource.readyState === EventSource.CLOSED)) {
+        // Only reconnect SSE if it was actually disconnected and we're not using polling
+        if (!fallbackToPolling && eventSource && eventSource.readyState === EventSource.CLOSED) {
+          console.log('Reconnecting SSE after page became visible');
           initializeSSE();
         }
       } else {
-        console.log('Page hidden, closing SSE connection');
-        // Close SSE connection when page is hidden to save resources
-        if (eventSource) {
-          eventSource.close();
-        }
-        // Clear any polling timers
+        console.log('Page hidden, keeping SSE connection alive');
+        // Don't close SSE connection when page is hidden - let it stay alive
+        // Only clear polling timers if they exist
         if (updateTimer) {
           clearTimeout(updateTimer);
         }
