@@ -208,8 +208,7 @@
 </div>
     </div>
   </footer>
-  
-  <script>
+    <script>
     document.addEventListener('DOMContentLoaded', () => {
       const searchInput = document.getElementById('eventSearch');
       const eventKeyInput = document.getElementById('eventKey');
@@ -225,7 +224,31 @@
       const loadingBars = viewMatchesBtn.querySelector('.loading-bars');
       const svgIcon = viewMatchesBtn.querySelector('.search-icon');
 
-      form.addEventListener('submit', (e) => {
+      // Function to reset button state
+      function resetButtonState() {
+        viewMatchesBtn.disabled = false;
+        btnText.style.display = 'inline';
+        loadingBars.style.display = 'none';
+        if (svgIcon) svgIcon.style.display = 'inline';
+      }
+
+      // Reset button state when page becomes visible (handles browser back button)
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          resetButtonState();
+        }
+      });
+
+      // Reset button state when page is shown (handles browser back/forward navigation)
+      window.addEventListener('pageshow', (event) => {
+        resetButtonState();
+      });
+
+      // Reset button state immediately on load (handles page refresh)
+      resetButtonState();      form.addEventListener('submit', (e) => {
+        // Reset button state first in case of validation errors
+        resetButtonState();
+        
         const teamKeyInput = document.getElementById('teamKey');
         const eventSearchInput = document.getElementById('eventSearch');
         const eventKeyInput = document.getElementById('eventKey');
