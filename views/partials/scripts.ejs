@@ -191,19 +191,19 @@
   let lastHeartbeatTime = 0;
   let heartbeatWatchdog = null;
   let successfulPollingCount = 0;
-
   function startHeartbeatWatchdog() {
     // Clear existing watchdog
     if (heartbeatWatchdog) {
       clearInterval(heartbeatWatchdog);
     }
-      // Check every 15 seconds (server sends heartbeat every 30 seconds)
+    
+    // Check every 10 seconds (server sends heartbeat every 10 seconds)
     heartbeatWatchdog = setInterval(() => {
       const now = Date.now();
       const timeSinceLastHeartbeat = now - lastHeartbeatTime;
       
-      // If no heartbeat for 45 seconds, assume connection is dead
-      if (lastHeartbeatTime > 0 && timeSinceLastHeartbeat > 45000) {
+      // If no heartbeat for 25 seconds, assume connection is dead
+      if (lastHeartbeatTime > 0 && timeSinceLastHeartbeat > 25000) {
         console.log('SSE connection appears dead - no heartbeat for', Math.round(timeSinceLastHeartbeat/1000), 'seconds');
         
         // Force close the connection and trigger reconnection
@@ -225,10 +225,11 @@
         if (updateStatus) {
           updateStatus.innerHTML = 'Connection lost. Attempting to reconnect...';
         }
-          // Start reconnection with faster backoff
+        
+        // Start reconnection with faster backoff for Cloudflare
         if (reconnectAttempts < maxReconnectAttempts) {
           reconnectAttempts++;
-          const delay = Math.min(1000 * reconnectAttempts, 5000); // Faster reconnection
+          const delay = Math.min(500 * reconnectAttempts, 3000); // Faster reconnection for Cloudflare
           setTimeout(() => {
             initializeSSE();
           }, delay);
@@ -238,9 +239,10 @@
             updateStatus.innerHTML = 'SSE disconnected, to reconnect <a href="#" onclick="location.reload(); return false;" style="color: #2196F3; text-decoration: underline; cursor: pointer;">refresh</a>';
           }
           fallbackToPolling = true;
-          setTimeout(checkForUpdates, 5000);        }
+          setTimeout(checkForUpdates, 5000);
+        }
       }
-    }, 15000); // Check every 15 seconds for faster detection
+    }, 10000); // Check every 10 seconds for faster detection
   }function initializeSSE() {
     const updateStatus = document.getElementById('update-status');
     const hashDisplay = document.getElementById('hash-display');
@@ -264,26 +266,28 @@
     if (eventSource) {
       console.log('Closing existing SSE connection');
       eventSource.close();
-    }
-
-    const sseUrl = '/api/updates-stream?eventKey=' + encodeURIComponent('<%= eventKey %>') 
+    }    const sseUrl = '/api/updates-stream?eventKey=' + encodeURIComponent('<%= eventKey %>') 
       + '&teamKey=' + encodeURIComponent('<%= formattedTeamKey %>');
     
     console.log('Attempting SSE connection to:', sseUrl);
     eventSource = new EventSource(sseUrl);
     
-    eventSource.onopen = function() {
-      console.log('SSE connection opened successfully');
+    console.log('EventSource created, readyState:', eventSource.readyState);
+    
+    eventSource.onopen = function(event) {
+      console.log('SSE connection opened successfully', event);
+      console.log('EventSource readyState after open:', eventSource.readyState);
       isConnecting = false;
       reconnectAttempts = 0;
       fallbackToPolling = false;
       updateStatus.innerHTML = 'Connected to real-time updates';
     };
-    
-    eventSource.onmessage = function(event) {
+      eventSource.onmessage = function(event) {
       try {
         const data = JSON.parse(event.data);
-        console.log('SSE message received:', data.type);        if (data.type === 'connected') {
+        console.log('SSE message received:', data.type);
+        
+        if (data.type === 'connected') {
           console.log('SSE connected successfully');
           updateStatus.innerHTML = 'Real-time updates active';
           lastHeartbeatTime = Date.now(); // Mark connection time
@@ -294,7 +298,8 @@
             currentDataHash = data.hash;
             const shortHash = currentDataHash.substring(0, 8);
             hashDisplay.innerHTML = 'Hash: ' + shortHash;
-          }        } else if (data.type === 'update') {
+          }
+        } else if (data.type === 'update') {
           console.log('Received update via SSE');
           lastHeartbeatTime = Date.now(); // Reset heartbeat timer on any message
           // Update hash display with the hash from SSE
@@ -303,7 +308,9 @@
             const shortHash = currentDataHash.substring(0, 8);
             hashDisplay.innerHTML = 'Hash: ' + shortHash;
           }
-          handleRealtimeUpdate();        } else if (data.type === 'heartbeat') {
+          handleRealtimeUpdate();
+          updateNextMatchSidebar(data);
+        } else if (data.type === 'heartbeat') {
           // Update last seen timestamp and reset watchdog
           lastHeartbeatTime = Date.now();
           const lastChecked = getSyncedTime().toLocaleTimeString();
@@ -315,12 +322,25 @@
             hashDisplay.innerHTML = 'Hash: ' + shortHash;
           }
           checkClockSync(data.timestamp);
+        } else if (data.type === 'reconnect') {
+          console.log('Server requested reconnection:', data.reason);
+          // Server is asking us to reconnect (likely to prevent Cloudflare timeout)
+          if (eventSource) {
+            eventSource.close();
+          }
+          // Reset connection state and reconnect immediately
+          isConnecting = false;
+          reconnectAttempts = 0; // Reset attempts since this is a planned reconnection
+          setTimeout(() => {
+            initializeSSE();
+          }, 1000); // Short delay before reconnecting
         }
       } catch (error) {
         console.error('Error parsing SSE data:', error);
       }
     };    eventSource.onerror = function(error) {
       console.error('SSE error:', error);
+      console.log('SSE readyState:', eventSource.readyState);
       isConnecting = false;
       
       // Clear the heartbeat watchdog on error
@@ -330,11 +350,21 @@
       }
       lastHeartbeatTime = 0;
       
-      updateStatus.innerHTML = 'Connection error. Attempting to reconnect...';
+      // Check if this is a Cloudflare timeout (524 error) or connection closed
+      if (eventSource.readyState === EventSource.CLOSED) {
+        console.log('SSE connection closed by server (likely Cloudflare timeout)');
+        updateStatus.innerHTML = 'Connection reset. Reconnecting...';
+      } else {
+        updateStatus.innerHTML = 'Connection error. Attempting to reconnect...';
+      }
       
       if (reconnectAttempts < maxReconnectAttempts) {
         reconnectAttempts++;
-        const delay = Math.min(1000 * reconnectAttempts, 10000); // Cap at 10 seconds
+        // Use very short delays for Cloudflare timeouts since they're expected
+        const delay = eventSource.readyState === EventSource.CLOSED ? 
+          Math.min(200 * reconnectAttempts, 2000) : // Very fast reconnect for Cloudflare timeouts
+          Math.min(1000 * reconnectAttempts, 5000); // Normal reconnect for other errors
+        
         console.log(`Will reconnect SSE in ${delay}ms (attempt ${reconnectAttempts})`);
         setTimeout(() => {
           console.log(`Reconnecting SSE (attempt ${reconnectAttempts})`);
@@ -347,9 +377,7 @@
         setTimeout(checkForUpdates, 5000);
       }
     };
-  }
-
-  async function handleRealtimeUpdate() {
+  }  async function handleRealtimeUpdate() {
     const updateStatus = document.getElementById('update-status');
     
     try {
@@ -359,19 +387,26 @@
         + '&teamKey=' + encodeURIComponent('<%= formattedTeamKey %>'));
       
       if (!response.ok) {
-        throw new Error('Failed to fetch current matches');
+        throw new Error(`Failed to fetch current matches: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log('Received updated match data');
+      console.log('Received updated match data:', data);
+      console.log('Match groups structure:', data.matchGroups);
+      console.log('Completed matches count:', data.completedMatches ? data.completedMatches.length : 0);
+      
+      // Validate data structure before proceeding
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid data structure received from server');
+      }
       
       // Save currently open matches
       saveOpenMatches();
-      
-      // Update the UI with new data
+        // Update the UI with new data
       updateMatchesUI(data);
       updateEventInfo(data.nowQueuing);
       updateTeamRanking(data.teamRanking);
+      updateNextMatchSidebar(data);
       
       // Check if the auto-opened match is now completed
       if (autoOpenedMatchId && isMatchCompleted(autoOpenedMatchId)) {
@@ -394,6 +429,11 @@
     } catch (error) {
       console.error('Error handling realtime update:', error);
       updateStatus.innerHTML = 'Update failed. Retrying...';
+      
+      // If this is a JSON parsing error, it might indicate server issues
+      if (error.name === 'SyntaxError' && error.message.includes('JSON')) {
+        console.error('JSON parsing error - server may have returned HTML error page');
+      }
     }
   }
   // Fallback polling function (used if SSE fails)
@@ -631,17 +671,34 @@
     console.log("DOM loaded, formatting timestamps");
     formatAllTimestamps();
   });
-  
   // UI update functions for SSE
   function updateMatchesUI(data) {
+    console.log('updateMatchesUI called with data:', data);
     const matchesColumn = document.querySelector('.matches-column .content');
-    if (!matchesColumn) return;
+    if (!matchesColumn) {
+      console.error('Matches column not found in DOM');
+      return;
+    }
+    
+    // Add null checks for data structure
+    if (!data || typeof data !== 'object') {
+      console.error('Invalid data received for updateMatchesUI:', data);
+      return;
+    }
 
     // Generate new HTML for matches
     let newHTML = '';
     
+    // Ensure matchGroups exists and is an object
+    const matchGroups = data.matchGroups || {};
+    const completedMatches = data.completedMatches || [];
+    
+    console.log('Processing match groups:', Object.keys(matchGroups));
+    console.log('Processing completed matches count:', completedMatches.length);
+    
     // Handle empty matches case
-    if (Object.keys(data.matchGroups).length === 0 && data.completedMatches.length === 0) {
+    if (Object.keys(matchGroups).length === 0 && completedMatches.length === 0) {
+      console.log('No matches to display, showing no-matches message');
       newHTML = `
         <div class="no-matches">
           <p>No matches found for team <%= formattedTeamKey %></p>
@@ -649,20 +706,28 @@
       `;
     } else {
       // Active/Upcoming Matches
-      Object.keys(data.matchGroups).forEach(groupType => {
-        newHTML += generateMatchGroupHTML(groupType, data.matchGroups[groupType], false);
+      Object.keys(matchGroups).forEach(groupType => {
+        if (matchGroups[groupType] && Array.isArray(matchGroups[groupType])) {
+          console.log(`Adding match group ${groupType} with ${matchGroups[groupType].length} matches`);
+          newHTML += generateMatchGroupHTML(groupType, matchGroups[groupType], false);
+        } else {
+          console.warn(`Invalid match group data for ${groupType}:`, matchGroups[groupType]);
+        }
       });
       
       // Completed Matches
-      if (data.completedMatches.length > 0) {
-        newHTML += generateMatchGroupHTML('Completed', data.completedMatches, true);
+      if (completedMatches.length > 0) {
+        console.log(`Adding completed matches: ${completedMatches.length}`);
+        newHTML += generateMatchGroupHTML('Completed', completedMatches, true);
       }
     }
     
+    console.log('Generated HTML length:', newHTML.length);
     matchesColumn.innerHTML = newHTML;
     
     // Re-run timestamp formatting for new content
     formatAllTimestamps();
+    console.log('updateMatchesUI completed');
   }
 
   function updateEventInfo(nowQueuing) {
@@ -683,7 +748,6 @@
     if (recordElement) recordElement.textContent = teamRanking.record;
     if (matchesPlayedElement) matchesPlayedElement.textContent = teamRanking.matchesPlayed || "N/A";
   }
-
   function generateMatchGroupHTML(groupType, matches, isCompletedGroup) {
     if (!matches || matches.length === 0) return '';
     
@@ -698,58 +762,123 @@
     matches.forEach(match => {
       const redTeams = match.redTeams || [];
       const blueTeams = match.blueTeams || [];
-      const isTeamInMatch = redTeams.includes(formattedTeamKey) || blueTeams.includes(formattedTeamKey);
-      const alliance = redTeams.includes(formattedTeamKey) ? 'red' : 'blue';
+      const isRed = redTeams.includes(formattedTeamKey);
+      const allianceColor = isRed ? "red" : "blue";
       
       const matchId = match.label.replace(/\s+/g, '-');
       
+      // Format time display
+      let timeDisplay = "TBD";
+      let rawScheduledTime = "";
+      if (match.times && match.times.scheduledStartTime) {
+        rawScheduledTime = match.times.scheduledStartTime;
+        try {
+          const matchDate = new Date(match.times.scheduledStartTime);
+          if (!isNaN(matchDate.getTime())) {
+            timeDisplay = matchDate.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            });
+          }
+        } catch (e) {
+          console.error("Error formatting scheduled time:", e);
+        }
+      }
+      
+      // Status classes
+      let statusClass = "status-default";
+      if (match.status === "Now queuing") statusClass = "status-queuing";
+      else if (match.status === "On deck") statusClass = "status-on-deck";
+      else if (match.status === "On field") statusClass = "status-on-field";
+      
+      // Result classes and text
+      let resultClass = "";
+      let resultText = "";
+      if (match.result === "win") {
+        resultClass = "result-win";
+        resultText = "Win";
+      } else if (match.result === "loss") {
+        resultClass = "result-loss";
+        resultText = "Loss";
+      } else if (match.result === "tie") {
+        resultClass = "result-tie";
+        resultText = "Tie";
+      }
+      
       html += `
-        <div id="${matchId}" class="match-card ${isTeamInMatch ? 'team-match' : ''} ${isCompletedGroup ? 'completed' : ''}" onclick="toggleMatch('${matchId}')">
-          <div class="match-header">
-            <div class="match-info">
-              <span class="match-name">${match.label}</span>
-              <span class="match-time" data-timestamp="${match.times?.scheduledStartTime || ''}">
-                ${formatMatchTime(match.times?.scheduledStartTime)}
-              </span>
+        <div class="match-card" id="match-${matchId}">
+          <div class="match-header" onclick="toggleMatch('match-${matchId}')">
+            <div class="match-header-left">
+              <div class="alliance-dot ${allianceColor}-alliance"></div>
+              <div class="match-number">${match.label}</div>
+              <div class="match-status ${statusClass}">${match.status}</div>
+              ${match.status === "Completed" && match.result ? `
+                <div class="match-result ${resultClass}">${resultText}</div>
+                ${match.rankingPoints && match.rankingPoints.total !== undefined ? `
+                  <div class="match-rp">${match.rankingPoints.total} RP</div>
+                ` : ''}
+                ${match.score ? `
+                  <div class="match-score">${match.score.alliance} - ${match.score.opposing}</div>
+                ` : ''}
+              ` : ''}
             </div>
-            <div class="match-status ${getStatusClass(match.status)}">${match.status}</div>
+            <div class="match-time" data-timestamp="${rawScheduledTime}">
+              ${timeDisplay}
+            </div>
           </div>
-          
-          <div class="match-details">
-            <div class="alliances">
-              <div class="alliance red">
-                <div class="alliance-label">Red Alliance</div>
-                <div class="teams">
+          <div class="match-content">
+            <div class="match-details">
+              <div class="alliance-section">
+                <div class="alliance-title red-title">Red Alliance</div>
+                <div class="alliance-teams">
                   ${redTeams.map(team => `
-                    <span class="team ${team === formattedTeamKey ? 'highlighted' : ''}">${team}</span>
+                    <div class="team-chip red-team ${team === formattedTeamKey ? 'highlight' : ''}">Team ${team}</div>
                   `).join('')}
                 </div>
-                ${match.scores?.red !== undefined ? `<div class="score">${match.scores.red}</div>` : ''}
+              </div>
+              <div class="alliance-section">
+                <div class="alliance-title blue-title">Blue Alliance</div>
+                <div class="alliance-teams">
+                  ${blueTeams.map(team => `
+                    <div class="team-chip blue-team ${team === formattedTeamKey ? 'highlight' : ''}">Team ${team}</div>
+                  `).join('')}
+                </div>
               </div>
               
-              <div class="alliance blue">
-                <div class="alliance-label">Blue Alliance</div>
-                <div class="teams">
-                  ${blueTeams.map(team => `
-                    <span class="team ${team === formattedTeamKey ? 'highlighted' : ''}">${team}</span>
-                  `).join('')}
+              ${match.status === "Completed" && match.rankingPoints ? `
+                <div class="result-section">
+                  <div class="result-title ${resultClass ? 'result-' + match.result + '-title' : ''}">
+                    Ranking Points: ${match.rankingPoints.total}
+                  </div>
+                  ${match.rankingPoints.breakdown && match.rankingPoints.breakdown.length > 0 ? `
+                    <div class="rp-breakdown">
+                      ${match.rankingPoints.breakdown.map(rp => `
+                        <div class="rp-item">${rp}</div>
+                      `).join('')}
+                    </div>
+                  ` : ''}
                 </div>
-                ${match.scores?.blue !== undefined ? `<div class="score">${match.scores.blue}</div>` : ''}
+              ` : ''}
+              
+              <div class="time-section">
+                <div class="time-label">Match Times</div>
+                <div class="time-row">
+                  Scheduled: <span class="formatted-time" data-timestamp="${rawScheduledTime}">${timeDisplay}</span>
+                </div>
+                ${match.times && match.times.estimatedStartTime ? `
+                  <div class="time-row">
+                    Estimated: <span class="formatted-time" data-timestamp="${match.times.estimatedStartTime}">${formatMatchTime(match.times.estimatedStartTime)}</span>
+                  </div>
+                ` : ''}
               </div>
+              
+              ${match.breakAfter ? `
+                <div class="break-indicator">
+                  Break after this match: ${match.breakAfter}
+                </div>
+              ` : ''}
             </div>
-            
-            ${match.rankingPoints ? `
-              <div class="ranking-points">
-                <div class="rp-section red">
-                  <span class="rp-label">Red RP:</span>
-                  <span class="rp-value">${match.rankingPoints.red}</span>
-                </div>
-                <div class="rp-section blue">
-                  <span class="rp-label">Blue RP:</span>
-                  <span class="rp-value">${match.rankingPoints.blue}</span>
-                </div>
-              </div>
-            ` : ''}
           </div>
         </div>
       `;
@@ -799,5 +928,129 @@
     if (statusLower.includes('field')) return 'status-on-field';
     if (statusLower.includes('completed')) return 'status-completed';
     return 'status-default';
+  }
+
+  function updateNextMatchSidebar(data) {
+    const nextMatchCard = document.querySelector('.next-match-card');
+    if (!nextMatchCard) return;
+    
+    const formattedTeamKey = '<%= formattedTeamKey %>';
+    let nextMatch = null;
+    let nextMatchAlliance = null;
+    
+    // Find the next match (first match in any non-completed group)
+    if (data.matchGroups && Object.keys(data.matchGroups).length > 0) {
+      for (const groupType in data.matchGroups) {
+        if (data.matchGroups[groupType].length > 0) {
+          nextMatch = data.matchGroups[groupType][0];
+          nextMatchAlliance = nextMatch.redTeams.includes(formattedTeamKey) ? 'red' : 'blue';
+          break;
+        }
+      }
+    }
+    
+    let nextMatchHTML = '';
+    
+    if (nextMatch) {
+      // Format time displays
+      let nextMatchTimeDisplay = "TBD";
+      if (nextMatch.times && nextMatch.times.scheduledStartTime) {
+        try {
+          const matchDate = new Date(nextMatch.times.scheduledStartTime);
+          if (!isNaN(matchDate.getTime())) {
+            nextMatchTimeDisplay = matchDate.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            });
+          }
+        } catch (e) {
+          // Keep default "TBD" if date parsing fails
+        }
+      }
+      
+      let estimatedTimeDisplay = "";
+      if (nextMatch.times && nextMatch.times.estimatedStartTime) {
+        try {
+          const estDate = new Date(nextMatch.times.estimatedStartTime);
+          if (!isNaN(estDate.getTime())) {
+            estimatedTimeDisplay = "Est: " + estDate.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            });
+          }
+        } catch (e) {
+          // Keep empty if parsing fails
+        }
+      }
+      
+      nextMatchHTML = `
+        <div class="next-match-details ${nextMatch.status === 'Now queuing' ? 'queuing' : ''}">
+          <div class="next-match-number">
+            <span>${nextMatch.label}</span>
+          </div>
+          <div class="next-match-time" data-timestamp="${nextMatch.times?.scheduledStartTime || ''}">
+            ${nextMatchTimeDisplay}
+          </div>
+          
+          ${estimatedTimeDisplay ? `
+            <div class="next-match-estimated" data-timestamp="${nextMatch.times?.estimatedStartTime || ''}">
+              ${estimatedTimeDisplay}
+            </div>
+          ` : ''}
+          
+          <div class="alliance-indicator ${nextMatchAlliance}">
+            <div class="alliance-dot ${nextMatchAlliance}-alliance"></div>
+            ${nextMatchAlliance.charAt(0).toUpperCase() + nextMatchAlliance.slice(1)} Alliance
+          </div>
+          
+          <div class="next-match-teams">
+            <div class="teams-section">
+              <div class="teams-title red-title">Red Alliance</div>
+              <div class="teams-list">
+                ${nextMatch.redTeams.map(team => `
+                  <div class="team-item ${team === formattedTeamKey ? 'highlight red-highlight' : ''}">
+                    Team ${team}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            
+            <div class="teams-section">
+              <div class="teams-title blue-title">Blue Alliance</div>
+              <div class="teams-list">
+                ${nextMatch.blueTeams.map(team => `
+                  <div class="team-item ${team === formattedTeamKey ? 'highlight blue-highlight' : ''}">
+                    Team ${team}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+          
+          <div class="match-status ${nextMatch.status === 'Now queuing' ? 'status-queuing' : nextMatch.status === 'On deck' ? 'status-on-deck' : nextMatch.status === 'On field' ? 'status-on-field' : 'status-default'}" style="text-align: center; margin-top: 5px;">
+            ${nextMatch.status}
+          </div>
+        </div>
+      `;
+    } else {
+      nextMatchHTML = `
+        <div class="next-match-details">
+          <div style="text-align: center; padding: 20px 0; color: var(--text-secondary); font-size: 1.2em;">
+            N/A
+          </div>
+          <div style="text-align: center; color: var(--text-secondary); font-size: 0.9em;">
+            No upcoming matches
+          </div>
+        </div>
+      `;
+    }
+    
+    // Update the sidebar content
+    const nextMatchDetails = nextMatchCard.querySelector('.next-match-details');
+    if (nextMatchDetails) {
+      nextMatchDetails.outerHTML = nextMatchHTML;
+    }
   }
 </script>
