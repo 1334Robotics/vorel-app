@@ -3,8 +3,34 @@ const { fetchEventMatchResults } = require('./api');
 // Function to process match data with TBA results
 async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
   try {
-    // Ensure teamKey is in the right format for TBA
-    const formattedTeamKey = teamKey.startsWith('frc') ? teamKey : `frc${teamKey}`;
+    // Ensure teamKey is a string and in the right format for TBA
+    const teamKeyStr = String(teamKey);
+    const formattedTeamKey = teamKeyStr.startsWith('frc') ? teamKeyStr : `frc${teamKeyStr}`;
+
+    // Sort matches by their sequence (same as apex.js)
+    matches.sort((a, b) => {
+      const aType = a.label.split(' ')[0];
+      const bType = b.label.split(' ')[0];
+      
+      if (aType !== bType) return aType.localeCompare(bType);
+      
+      const aNum = parseInt(a.label.split(' ')[1]);
+      const bNum = parseInt(b.label.split(' ')[1]);
+      return aNum - bNum;
+    });
+
+    // Auto-complete logic: mark earlier "On field" match as "Completed" if a later one is "On field"
+    // This ensures SSE updates use the same status logic as the main route
+    for (let i = 0; i < matches.length - 1; i++) {
+      if (matches[i].status === "On field") {
+        for (let j = i + 1; j < matches.length; j++) {
+          if (matches[j].status === "On field") {
+            matches[i].status = "Completed";
+            break;
+          }
+        }
+      }
+    }
 
     // Fetch match results from TBA
     const tbaMatches = await fetchEventMatchResults(eventKey);
@@ -111,13 +137,33 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
             }
           }
         }
-      }
+      }    });    // Separate completed and upcoming matches
+    const completedMatches = matches.filter(match => match.status === "Completed");
+    const upcomingMatches = matches.filter(match => match.status !== "Completed");
+
+    // Group ONLY upcoming/active matches by type for display (not completed ones)
+    const matchGroups = {};
+    upcomingMatches.forEach(match => {
+      const type = match.label.split(' ')[0];
+      if (!matchGroups[type]) {
+        matchGroups[type] = [];      }
+      matchGroups[type].push(match);
     });
 
-    return matches;
+    return {
+      matches,
+      completedMatches,
+      matchGroups
+    };
   } catch (error) {
     console.error('Error processing TBA match data:', error);
-    return matches;
+    // Return fallback structure
+    const completedMatches = matches ? matches.filter(match => match.status === "Completed") : [];
+    return {
+      matches: matches || [],
+      completedMatches,
+      matchGroups: {}
+    };
   }
 }
 

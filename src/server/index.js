@@ -80,6 +80,11 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 3002;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// Configure server timeouts for Cloudflare compatibility
+server.timeout = 90000; // 90 seconds - under Cloudflare's 100-second timeout
+server.keepAliveTimeout = 85000; // 85 seconds
+server.headersTimeout = 86000; // 86 seconds (should be longer than keepAliveTimeout)

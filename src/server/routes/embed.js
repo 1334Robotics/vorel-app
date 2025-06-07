@@ -123,14 +123,13 @@ router.get('/matches', async (req, res) => {
       Array.isArray(match.redTeams) && match.redTeams.includes(formattedTeamKey) || 
       Array.isArray(match.blueTeams) && match.blueTeams.includes(formattedTeamKey)
     );
-    
-    // Add TBA data to matches
-    const matchesWithResults = await processMatchDataWithTBAResults(teamMatches, formattedTeamKey, eventKey);
+      // Add TBA data to matches
+    const processedData = await processMatchDataWithTBAResults(teamMatches, formattedTeamKey, eventKey);
     
     // Group matches by type and separate completed matches
     const matchGroups = {};
     const completedMatches = []; 
-    matchesWithResults.forEach(match => {
+    processedData.matches.forEach(match => {
       if (match.status === "Completed") {
         completedMatches.push(match);
       } else {
