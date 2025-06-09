@@ -2,7 +2,7 @@
   "name": "vorel-app",
   "version": "1.0.0",
   "description": "A web service for FRC teams that integrates with The Blue Alliance API and FRC Nexus API to track match schedules, alliance partnerships, team performance, and event rankings. Easily embeddable for team websites and competition displays.",
-  "main": "src/server./index.js",
+  "main": "src/server/index.js",
   "homepage": "https://vorel.app",
   "scripts": {
     "start": "node src/server/index.js",
