@@ -18,7 +18,19 @@ const embedRoutes = require("./routes/embed");
 const { initializeEventCache } = require("./helpers/api"); // Add this line near the top of src/server/index.js after importing routes
 
 // Middleware
-app.use(compression());
+app.use(compression({
+  filter: (req, res) => {
+    // Skip compression for social media crawlers to ensure proper meta tag parsing
+    const userAgent = req.get('User-Agent') || '';
+    const isSocialCrawler = /bot|crawler|spider|facebook|twitter|discord|slack|telegram|whatsapp/i.test(userAgent);
+    
+    if (isSocialCrawler) {
+      return false;
+    }
+    
+    return compression.filter(req, res);
+  }
+}));
 app.use(cors());
 app.use(express.json());
 // Security headers
