@@ -74,13 +74,21 @@ router.get('/updates-stream', async (req, res) => {
     const initialMessage = JSON.stringify({ 
       type: 'connected', 
       timestamp: Date.now(),
-      hash: currentHash 
+      hash: currentHash,
+      connectionId: connectionId
     });
     res.write(`data: ${initialMessage}\n\n`);
     console.log(`SSE connection confirmed for ${connectionId}`);
+    
+    // Store the initial hash for this connection
+    lastDataHashes.set(connectionId, currentHash);
   } catch (error) {
     console.error('Error getting initial hash for SSE:', error);    // If hash fails, send connection without hash
-    const fallbackMessage = JSON.stringify({ type: 'connected', timestamp: Date.now() });
+    const fallbackMessage = JSON.stringify({ 
+      type: 'connected', 
+      timestamp: Date.now(),
+      connectionId: connectionId
+    });
     res.write(`data: ${fallbackMessage}\n\n`);
     console.log(`SSE connection confirmed (fallback) for ${connectionId}`);
   }
@@ -476,11 +484,33 @@ router.get("/data-check", async (req, res) => {
 
 // SSE endpoint to get current match data for updates
 router.get('/current-matches', async (req, res) => {
-  const { eventKey: rawEventKey, teamKey } = req.query;
+  const { eventKey: rawEventKey, teamKey, connectionId, hash } = req.query;
   const eventKey = rawEventKey ? rawEventKey.toLowerCase() : rawEventKey;
 
+  // Validate required parameters
   if (!teamKey || !eventKey) {
     return res.status(400).json({ error: "Missing eventKey or teamKey" });
+  }
+
+  if (!connectionId || !hash) {
+    return res.status(401).json({ error: "Authentication required: missing connectionId or hash" });
+  }
+
+  // Validate connection exists and is active
+  const connection = sseConnections.get(connectionId);
+  if (!connection) {
+    return res.status(401).json({ error: "Invalid or expired connection" });
+  }
+
+  // Validate connection matches the requested event and team
+  if (connection.eventKey !== eventKey || connection.teamKey !== teamKey) {
+    return res.status(403).json({ error: "Connection does not match requested event/team" });
+  }
+
+  // Validate hash matches the stored hash for this connection
+  const storedHash = lastDataHashes.get(connectionId);
+  if (!storedHash || storedHash !== hash) {
+    return res.status(403).json({ error: "Invalid or outdated hash" });
   }
 
   try {

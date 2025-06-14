@@ -83,8 +83,8 @@
     });
     saveOpenMatches();
   }
-  
-  let currentDataHash = "";
+    let currentDataHash = "";
+  let currentConnectionId = "";
   let checkInterval = 10000; // 10 seconds interval
   let updateTimer;
   let serverTimeOffset = 0; // Store the difference between server and client time
@@ -211,14 +211,12 @@
           eventSource.close();
           eventSource = null;
         }
-        
-        // Clear the watchdog
+          // Clear the watchdog
         clearInterval(heartbeatWatchdog);
         heartbeatWatchdog = null;
         
         // Reset connection state
-        isConnecting = false;
-        lastHeartbeatTime = 0;
+        resetConnectionState();
         
         // Trigger reconnection
         const updateStatus = document.getElementById('update-status');
@@ -254,8 +252,7 @@
     }
     
     isConnecting = true;
-    
-    // Clear existing heartbeat watchdog
+      // Clear existing heartbeat watchdog
     if (heartbeatWatchdog) {
       clearInterval(heartbeatWatchdog);
       heartbeatWatchdog = null;
@@ -266,7 +263,11 @@
     if (eventSource) {
       console.log('Closing existing SSE connection');
       eventSource.close();
-    }    const sseUrl = '/api/updates-stream?eventKey=' + encodeURIComponent('<%= eventKey %>') 
+    }
+    
+    // Reset connection authentication state
+    currentConnectionId = "";
+    currentDataHash = "";const sseUrl = '/api/updates-stream?eventKey=' + encodeURIComponent('<%= eventKey %>') 
       + '&teamKey=' + encodeURIComponent('<%= formattedTeamKey %>');
     
     console.log('Attempting SSE connection to:', sseUrl);
@@ -286,13 +287,18 @@
       try {
         const data = JSON.parse(event.data);
         console.log('SSE message received:', data.type);
-        
-        if (data.type === 'connected') {
+          if (data.type === 'connected') {
           console.log('SSE connected successfully');
           updateStatus.innerHTML = 'Real-time updates active';
           lastHeartbeatTime = Date.now(); // Mark connection time
           successfulPollingCount = 0; // Reset polling count since SSE is working
           startHeartbeatWatchdog(); // Start monitoring
+          
+          // Store connection ID for API authentication
+          if (data.connectionId) {
+            currentConnectionId = data.connectionId;
+          }
+          
           // Initialize hash display if provided
           if (data.hash && hashDisplay) {
             currentDataHash = data.hash;
@@ -380,11 +386,13 @@
   }  async function handleRealtimeUpdate() {
     const updateStatus = document.getElementById('update-status');
     
-    try {
+    try {      
       console.log('Handling realtime update');
-      // Fetch the processed match data
+      // Fetch the processed match data with authentication
       const response = await fetch('/api/current-matches?eventKey=' + encodeURIComponent('<%= eventKey %>') 
-        + '&teamKey=' + encodeURIComponent('<%= formattedTeamKey %>'));
+        + '&teamKey=' + encodeURIComponent('<%= formattedTeamKey %>')
+        + '&connectionId=' + encodeURIComponent(currentConnectionId)
+        + '&hash=' + encodeURIComponent(currentDataHash));
       
       if (!response.ok) {
         throw new Error(`Failed to fetch current matches: ${response.status} ${response.statusText}`);
@@ -1049,6 +1057,18 @@
     const nextMatchDetails = nextMatchCard.querySelector('.next-match-details');
     if (nextMatchDetails) {
       nextMatchDetails.outerHTML = nextMatchHTML;
+    }
+  }
+
+  // Reset connection state
+  function resetConnectionState() {
+    currentConnectionId = "";
+    currentDataHash = "";
+    isConnecting = false;
+    lastHeartbeatTime = 0;
+    if (heartbeatWatchdog) {
+      clearInterval(heartbeatWatchdog);
+      heartbeatWatchdog = null;
     }
   }
 </script>
