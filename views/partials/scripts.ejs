@@ -390,10 +390,9 @@
         throw new Error(`Failed to fetch current matches: ${response.status} ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log('Received updated match data:', data);
+      const data = await response.json();      console.log('Received updated match data:', data);
       console.log('Match groups structure:', data.matchGroups);
-      console.log('Completed matches count:', data.completedMatches ? data.completedMatches.length : 0);
+      console.log('Completed matches count:', data.matches ? data.matches.filter(match => match.status === 'Completed').length : 0);
       
       // Validate data structure before proceeding
       if (!data || typeof data !== 'object') {
@@ -688,10 +687,9 @@
 
     // Generate new HTML for matches
     let newHTML = '';
-    
-    // Ensure matchGroups exists and is an object
+      // Ensure matchGroups exists and is an object
     const matchGroups = data.matchGroups || {};
-    const completedMatches = data.completedMatches || [];
+    const completedMatches = data.matches ? data.matches.filter(match => match.status === 'Completed') : [];
     
     console.log('Processing match groups:', Object.keys(matchGroups));
     console.log('Processing completed matches count:', completedMatches.length);

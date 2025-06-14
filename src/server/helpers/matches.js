@@ -136,9 +136,7 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
               }
             }
           }
-        }
-      }    });    // Separate completed and upcoming matches
-    const completedMatches = matches.filter(match => match.status === "Completed");
+        }      }    });    // Filter upcoming/active matches for grouping
     const upcomingMatches = matches.filter(match => match.status !== "Completed");
 
     // Group ONLY upcoming/active matches by type for display (not completed ones)
@@ -148,20 +146,14 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
       if (!matchGroups[type]) {
         matchGroups[type] = [];      }
       matchGroups[type].push(match);
-    });
-
-    return {
+    });    return {
       matches,
-      completedMatches,
       matchGroups
     };
   } catch (error) {
-    console.error('Error processing TBA match data:', error);
-    // Return fallback structure
-    const completedMatches = matches ? matches.filter(match => match.status === "Completed") : [];
+    console.error('Error processing TBA match data:', error);    // Return fallback structure
     return {
       matches: matches || [],
-      completedMatches,
       matchGroups: {}
     };
   }

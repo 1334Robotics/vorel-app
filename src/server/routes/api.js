@@ -549,12 +549,9 @@ router.get('/current-matches', async (req, res) => {
       teamMatches,
       frcTeamKey,
       eventKey
-    );
-
-    res.json({
+    );    res.json({
       nowQueuing: eventData.nowQueuing,
       matches: processedData.matches,
-      completedMatches: processedData.completedMatches,
       matchGroups: processedData.matchGroups,
       teamRanking: teamRankingData ? {
         rank: teamRankingData.rank,

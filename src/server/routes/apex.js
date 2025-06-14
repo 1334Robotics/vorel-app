@@ -186,24 +186,11 @@ router.get('/', async (req, res) => {
     const teamMatches = matches.filter(match => 
       Array.isArray(match.redTeams) && match.redTeams.includes(formattedTeamKey) || 
       Array.isArray(match.blueTeams) && match.blueTeams.includes(formattedTeamKey)
-    );
-      // Add TBA data to matches
+    );    // Add TBA data to matches
     const processedData = await processMatchDataWithTBAResults(teamMatches, formattedTeamKey, eventKey);
     
-    // Group matches by type and separate completed matches
-    const matchGroups = {};
-    const completedMatches = [];
-    processedData.matches.forEach(match => {
-      if (match.status === "Completed") {
-        completedMatches.push(match);
-      } else {
-        const matchType = match.label.split(' ')[0];
-        if (!matchGroups[matchType]) {
-          matchGroups[matchType] = [];
-        }
-        matchGroups[matchType].push(match);
-      }
-    });
+    // Filter completed matches from the processed data
+    const completedMatches = processedData.matches.filter(match => match.status === "Completed");
 
     // Calculate record from completed matches
     const nexusRecord = calculateRecordFromCompletedMatches(completedMatches);
@@ -220,7 +207,7 @@ router.get('/', async (req, res) => {
       formattedTeamKey,
       eventKey,
       eventName,
-      matchGroups,
+      matchGroups: processedData.matchGroups,
       completedMatches,
       nowQueuing,
       teamRanking
