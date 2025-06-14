@@ -316,16 +316,9 @@ async function getDataHash(eventKey, teamKey) {
     );
 
     // Create a hash from the processed data structure (matching current-matches response)
-    const dataObj = {
+    const dataObj = {      
       nowQueuing: eventData.nowQueuing,
       matches: processedData.matches.map(match => ({
-        id: match.label.replace(/\s+/g, "-"),
-        status: match.status,
-        result: match.result || null,
-        score: match.score || null,
-        rankingPoints: match.rankingPoints || null
-      })),
-      completedMatches: processedData.completedMatches.map(match => ({
         id: match.label.replace(/\s+/g, "-"),
         status: match.status,
         result: match.result || null,
