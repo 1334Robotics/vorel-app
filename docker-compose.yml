@@ -12,8 +12,6 @@ services:
       - DB_NAME=vorel
       - DB_USER=${DB_USER:-vorel}
       - DB_PASSWORD=${DB_PASSWORD}
-    ports:
-      - "${Port:-3002}:${Port:-3002}"
     depends_on:
       - mariadb
     healthcheck:
