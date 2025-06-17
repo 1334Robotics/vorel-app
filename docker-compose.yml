@@ -7,8 +7,6 @@ services:
       - PORT=${Port:-3002}
       - Nexus_Api_Key=${Nexus_Api_Key}
       - TBA_API_Key=${TBA_API_Key}
-    ports:
-      - "${Port:-3002}:${Port:-3002}"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:${Port:-3002}/api/health"]
       interval: 30s

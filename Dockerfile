@@ -12,10 +12,6 @@ COPY views/ ./views/
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=3002
-
-# Expose the port
-EXPOSE $PORT
 
 # Start the application
 CMD ["node", "src/server/index.js"]
