@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/1334robotics/vorel-app:main
+    image: ghcr.io/1334robotics/vorel-app:MariaDB
     restart: always
     environment:
       - NODE_ENV=production
