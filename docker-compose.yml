@@ -7,8 +7,15 @@ services:
       - PORT=${Port:-3002}
       - Nexus_Api_Key=${Nexus_Api_Key}
       - TBA_API_Key=${TBA_API_Key}
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_NAME=vorel
+      - DB_USER=${DB_USER:-vorel}
+      - DB_PASSWORD=${DB_PASSWORD}
     ports:
       - "${Port:-3002}:${Port:-3002}"
+    depends_on:
+      - mariadb
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:${Port:-3002}/api/health"]
       interval: 30s
@@ -19,6 +26,25 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
       - "com.centurylinklabs.watchtower.scope=vorel-app"
 
+  mariadb:
+    image: mariadb:11
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=vorel
+      - MYSQL_USER=${DB_USER:-vorel}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
   watchtower:
     image: containrrr/watchtower
     volumes:
@@ -27,3 +53,6 @@ services:
     restart: always
     environment:
       - WATCHTOWER_POLL_INTERVAL=60
+
+volumes:
+  mariadb_data:

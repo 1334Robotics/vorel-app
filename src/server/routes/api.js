@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { fetchEventDetails, fetchTeamStatusAtEvent, fetchEventMatchResults, searchTBAEvents } = require('../helpers/api');
+const { fetchEventDetails, fetchTeamStatusAtEvent, fetchEventMatchResults, searchTBAEventsEnhanced } = require('../helpers/api');
 const { extractRPRelevantData } = require('../helpers/matches');
 const crypto = require('crypto');
 
@@ -576,24 +576,65 @@ router.get("/events/search", async (req, res) => {
 
     if (query.length < 3) {
       return res.json([]);
-    }
-
-    // Get current year
+    }    // Get current year
     const currentYear = new Date().getFullYear();
 
-    // Search events from current and next year
-    const [currentYearEvents] = await Promise.all([
-      searchTBAEvents(query, currentYear)
-    ]);
+    // Search events using enhanced search (MariaDB + cache fallback)
+    const searchResults = await searchTBAEventsEnhanced(query, currentYear);
 
-    // Combine and limit results
-    const combinedEvents = [...currentYearEvents];
-
-    // Return top 10 results
-    res.json(combinedEvents.slice(0, 10));
+    // Return results (already limited by the enhanced search function)
+    res.json(searchResults);
   } catch (error) {
     console.error("Error searching events:", error);
     res.status(500).json({ error: "Failed to search events" });
+  }
+});
+
+// Database status endpoint
+router.get('/db-status', async (req, res) => {
+  try {
+    const { getDBStats, testConnection } = require('../helpers/database');
+    const { checkMigrationStatus } = require('../helpers/migration');
+    
+    const [connected, stats, migrationStatus] = await Promise.all([
+      testConnection(),
+      getDBStats().catch(() => null),
+      checkMigrationStatus()
+    ]);
+    
+    res.json({
+      connected,
+      stats,
+      migration: migrationStatus,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('Error getting database status:', error);
+    res.status(500).json({ 
+      error: 'Failed to get database status',
+      connected: false 
+    });
+  }
+});
+
+// Manual migration trigger endpoint (for development)
+router.post('/migrate', async (req, res) => {
+  try {
+    const { migrateFromCache } = require('../helpers/migration');
+    
+    console.log('Manual migration triggered via API');
+    await migrateFromCache();
+    
+    res.json({ 
+      success: true, 
+      message: 'Migration completed successfully' 
+    });
+  } catch (error) {
+    console.error('Manual migration failed:', error);
+    res.status(500).json({ 
+      error: 'Migration failed', 
+      message: error.message 
+    });
   }
 });
 

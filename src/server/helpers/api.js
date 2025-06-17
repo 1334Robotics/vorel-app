@@ -1,6 +1,8 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const { searchEventsDB, upsertEvent, initializeDB } = require('./database');
+const { checkMigrationStatus, migrateFromCache } = require('./migration');
 require('dotenv').config();
 
 const Nexus_Api_Key = process.env.Nexus_Api_Key;
@@ -419,8 +421,26 @@ function initializeEventCache() {
   }, 60 * 60 * 1000); // Check every hour
 }
 
-// Run initialization when module is loaded
-initializeEventCache();
+// Replace the initializeEventCache function with enhanced version
+function initializeEventCacheEnhanced() {
+  // Initialize database first
+  initializeDB().then(() => {
+    // Initial cache management with database sync
+    manageEventCacheEnhanced();
+    
+    // Set up hourly checks
+    setInterval(() => {
+      manageEventCacheEnhanced();
+    }, 60 * 60 * 1000); // Check every hour
+  }).catch(err => {
+    console.error('Database initialization failed, using cache-only mode:', err.message);
+    // Fall back to original cache system
+    initializeEventCache();
+  });
+}
+
+// Run enhanced initialization when module is loaded
+initializeEventCacheEnhanced();
 
 module.exports = {
   fetchEventDetails,
@@ -428,6 +448,8 @@ module.exports = {
   fetchEventMatchResults,
   fetchTBAEventDetails,
   searchTBAEvents,
+  searchTBAEventsEnhanced, // Export enhanced search function
   updateEventsCache,
-  mapEventKey
+  mapEventKey,
+  syncCacheToDatabase
 };

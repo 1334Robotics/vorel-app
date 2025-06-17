@@ -11,6 +11,9 @@ This is free software, and you are welcome to redistribute it
 under certain conditions. TO VIEW THE LICENSE VISIT OUR [GITHUB](https://github.com/1334Robotics/vorel-app/blob/main/LICENSE)
 `);
 
+// Initialize database connection
+const { initializeDB } = require("./helpers/database");
+
 const app = express();
 const Routes = require("./routes/apex");
 const apiRoutes = require("./routes/api");
