@@ -21,10 +21,10 @@ async function testConnection() {
   let conn;
   try {
     conn = await pool.getConnection();
-    console.log('✅ MariaDB connection established successfully');
+    console.log('MariaDB connection established successfully');
     return true;
   } catch (err) {
-    console.error('❌ MariaDB connection failed:', err.message);
+    console.error('MariaDB connection failed:', err.message);
     return false;
   } finally {
     if (conn) conn.release();
@@ -186,9 +186,8 @@ async function bulkInsertEvents(events) {
       
       await conn.query(sql, params);
     }
-    
-    await conn.commit();
-    console.log(`✅ Bulk inserted ${events.length} events`);
+      await conn.commit();
+    console.log(`Bulk inserted ${events.length} events`);
     
   } catch (err) {
     if (conn) await conn.rollback();
@@ -236,8 +235,7 @@ async function cleanupOldEvents(keepYears = 5) {
       'DELETE FROM events WHERE year < ? AND year < 2025', 
       [cutoffYear]
     );
-    
-    console.log(`🧹 Cleaned up ${result.affectedRows} old events (before ${cutoffYear})`);
+      console.log(`Cleaned up ${result.affectedRows} old events (before ${cutoffYear})`);
     return result.affectedRows;
     
   } catch (err) {
@@ -250,12 +248,12 @@ async function cleanupOldEvents(keepYears = 5) {
 
 // Initialize database connection
 async function initializeDB() {
-  console.log('🔌 Initializing MariaDB connection...');
+  console.log('Initializing MariaDB connection...');
   const connected = await testConnection();
   
   if (connected) {
     const stats = await getDBStats();
-    console.log(`📊 Database stats: ${stats.total_events} events across ${stats.years_count} years`);
+    console.log(`Database stats: ${stats.total_events} events across ${stats.years_count} years`);
   }
   
   return connected;
@@ -265,15 +263,13 @@ async function initializeDB() {
 async function closeDB() {
   try {
     await pool.end();
-    console.log('🔌 MariaDB connection pool closed');
+    console.log('MariaDB connection pool closed');
   } catch (err) {
     console.error('Error closing MariaDB pool:', err.message);
   }
 }
 
-// Handle process shutdown
-process.on('SIGINT', closeDB);
-process.on('SIGTERM', closeDB);
+// Note: Shutdown handlers are now managed by the main server file
 
 module.exports = {
   pool,

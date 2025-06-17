@@ -594,18 +594,15 @@ router.get("/events/search", async (req, res) => {
 router.get('/db-status', async (req, res) => {
   try {
     const { getDBStats, testConnection } = require('../helpers/database');
-    const { checkMigrationStatus } = require('../helpers/migration');
     
-    const [connected, stats, migrationStatus] = await Promise.all([
+    const [connected, stats] = await Promise.all([
       testConnection(),
-      getDBStats().catch(() => null),
-      checkMigrationStatus()
+      getDBStats().catch(() => null)
     ]);
     
     res.json({
       connected,
       stats,
-      migration: migrationStatus,
       timestamp: Date.now()
     });
   } catch (error) {
@@ -613,27 +610,6 @@ router.get('/db-status', async (req, res) => {
     res.status(500).json({ 
       error: 'Failed to get database status',
       connected: false 
-    });
-  }
-});
-
-// Manual migration trigger endpoint (for development)
-router.post('/migrate', async (req, res) => {
-  try {
-    const { migrateFromCache } = require('../helpers/migration');
-    
-    console.log('Manual migration triggered via API');
-    await migrateFromCache();
-    
-    res.json({ 
-      success: true, 
-      message: 'Migration completed successfully' 
-    });
-  } catch (error) {
-    console.error('Manual migration failed:', error);
-    res.status(500).json({ 
-      error: 'Migration failed', 
-      message: error.message 
     });
   }
 });
