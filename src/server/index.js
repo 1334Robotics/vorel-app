@@ -18,7 +18,7 @@ const app = express();
 const Routes = require("./routes/apex");
 const apiRoutes = require("./routes/api");
 const embedRoutes = require("./routes/embed");
-const { initializeEventCache } = require("./helpers/api"); // Add this line near the top of src/server/index.js after importing routes
+const { initializeEventCacheEnhanced } = require("./helpers/api");
 
 // Middleware
 app.use(compression({
@@ -97,9 +97,33 @@ const PORT = process.env.PORT || 3002;
 
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  
+  // Initialize event cache and database after server starts
+  initializeEventCacheEnhanced();
 });
 
 // Configure server timeouts for Cloudflare compatibility
 server.timeout = 90000; // 90 seconds - under Cloudflare's 100-second timeout
 server.keepAliveTimeout = 85000; // 85 seconds
 server.headersTimeout = 86000; // 86 seconds (should be longer than keepAliveTimeout)
+
+// Graceful shutdown handling
+process.on('SIGINT', async () => {
+  console.log('Received SIGINT, shutting down gracefully...');
+  const { closeDB } = require('./helpers/database');
+  await closeDB();
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGTERM', async () => {
+  console.log('Received SIGTERM, shutting down gracefully...');
+  const { closeDB } = require('./helpers/database');
+  await closeDB();
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});

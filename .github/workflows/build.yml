@@ -2,7 +2,7 @@ name: Build and Publish Docker Image
 
 on:
   push:
-    branches: [ main ]
+    branches: [ '*' ]  # Build on all branches
   pull_request:
     branches: [ main ]
 
@@ -50,6 +50,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ github.ref_name }},enable=true
 
       - name: Build and push Docker image
