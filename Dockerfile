@@ -12,9 +12,10 @@ COPY views/ ./views/
 
 # Set environment variables
 ENV NODE_ENV=production
+ENV PORT=3002
 
-# Note: PORT is handled via environment variables (no need to expose when using Traefik)
-# Traefik will route to the container automatically
+# Expose the port
+EXPOSE $PORT
 
 # Start the application
 CMD ["node", "src/server/index.js"]
