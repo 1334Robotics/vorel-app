@@ -246,17 +246,96 @@ async function cleanupOldEvents(keepYears = 5) {
   }
 }
 
-// Initialize database connection
+// Initialize database connection and schema
 async function initializeDB() {
   console.log('Initializing MariaDB connection...');
   const connected = await testConnection();
   
   if (connected) {
+    console.log('Creating database schema if not exists...');
+    await createSchema();
+    
     const stats = await getDBStats();
     console.log(`Database stats: ${stats.total_events} events across ${stats.years_count} years`);
   }
   
   return connected;
+}
+
+// Create database schema
+async function createSchema() {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    console.log('Creating events table...');
+    
+    // Create events table
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS events (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        event_key VARCHAR(50) UNIQUE NOT NULL,
+        year INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        city VARCHAR(100),
+        state_prov VARCHAR(50),
+        country VARCHAR(50) DEFAULT 'USA',
+        start_date DATE,
+        end_date DATE,
+        week INT,
+        event_type VARCHAR(50),
+        -- Store original TBA data as JSON for flexibility
+        raw_data JSON,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        
+        -- Indexes for fast searching
+        INDEX idx_year (year),
+        INDEX idx_name (name),
+        INDEX idx_location (city, state_prov),
+        INDEX idx_event_key (event_key),
+        INDEX idx_date_range (start_date, end_date),
+        INDEX idx_year_date (year, start_date),
+        
+        -- Full-text search index for comprehensive text search
+        FULLTEXT(name, city, state_prov, event_key)
+      )
+    `);
+    
+    console.log('Creating event search view...');
+    
+    // Create view for formatted search results
+    await conn.query(`
+      CREATE OR REPLACE VIEW event_search_view AS
+      SELECT 
+        event_key as \`key\`,
+        CONCAT(year, ' ', name) as name,
+        CASE 
+          WHEN city IS NOT NULL AND state_prov IS NOT NULL THEN CONCAT(city, ', ', state_prov)
+          WHEN city IS NOT NULL THEN city
+          WHEN state_prov IS NOT NULL THEN state_prov
+          ELSE country
+        END as location,
+        CASE 
+          WHEN start_date = end_date THEN DATE_FORMAT(start_date, '%b %e, %Y')
+          ELSE CONCAT(DATE_FORMAT(start_date, '%b %e'), ' - ', DATE_FORMAT(end_date, '%b %e, %Y'))
+        END as date,
+        year,
+        start_date,
+        end_date
+      FROM events
+      WHERE year >= 2025
+      ORDER BY year DESC, start_date
+    `);
+    
+    console.log('Database schema created successfully!');
+    
+  } catch (err) {
+    console.error('Error creating database schema:', err);
+    throw err;
+  } finally {
+    if (conn) conn.release();
+  }
 }
 
 // Graceful shutdown
@@ -280,5 +359,6 @@ module.exports = {
   getDBStats,
   cleanupOldEvents,
   initializeDB,
+  createSchema,
   closeDB
 };
