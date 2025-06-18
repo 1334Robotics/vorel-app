@@ -1,5 +1,6 @@
 -- Initialize Vorel database schema
 -- Note: Database 'vorel' is already created by docker-compose environment variables
+SELECT 'Starting Vorel database initialization...' as message;
 USE vorel;
 
 -- Events table for FRC events
@@ -56,3 +57,5 @@ ORDER BY year DESC, start_date;
 
 -- Insert some sample data for testing (optional)
 -- This will be replaced by the migration script
+
+SELECT 'Vorel database initialization completed successfully!' as message;
