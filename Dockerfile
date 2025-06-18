@@ -9,6 +9,7 @@ RUN npm ci --only=production
 # Copy application code
 COPY src/ ./src/
 COPY views/ ./views/
+COPY sql/ ./sql/
 
 # Set environment variables
 ENV NODE_ENV=production
