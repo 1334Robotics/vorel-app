@@ -2,6 +2,8 @@ services:
   app:
     image: ghcr.io/1334robotics/vorel-app:MariaDB
     restart: always
+    links:
+      - mariadb
     environment:
       - NODE_ENV=production
       - PORT=${Port:-3002}
@@ -11,9 +13,12 @@ services:
       - DB_PORT=3306
       - DB_NAME=vorel
       - DB_USER=${DB_USER:-vorel}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PASSWORD=${DB_PASSWORD}    
     depends_on:
       - mariadb
+    networks:
+      - default
+      - vorel-network
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:${Port:-3002}/api/health"]
       interval: 30s
@@ -31,11 +36,11 @@ services:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MYSQL_DATABASE=vorel
       - MYSQL_USER=${DB_USER:-vorel}
-      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_PASSWORD=${DB_PASSWORD}    
     volumes:
       - mariadb_data:/var/lib/mysql
-    ports:
-      - "3306:3306"
+    networks:
+      - vorel-network
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 30s
@@ -53,3 +58,10 @@ services:
 
 volumes:
   mariadb_data:
+
+networks:
+  default:
+    driver: bridge
+  vorel-network:
+    driver: bridge
+    external: false
