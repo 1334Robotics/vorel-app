@@ -1,5 +1,5 @@
 -- Initialize Vorel database schema
-CREATE DATABASE IF NOT EXISTS vorel;
+-- Note: Database 'vorel' is already created by docker-compose environment variables
 USE vorel;
 
 -- Events table for FRC events
