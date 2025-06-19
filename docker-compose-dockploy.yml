@@ -4,8 +4,6 @@ services:
     restart: always
     links:
       - mariadb
-    ports:
-      - "${Port:-3002}:${Port:-3002}"
     environment:
       - NODE_ENV=production
       - PORT=${Port:-3002}
@@ -20,6 +18,7 @@ services:
       - mariadb
     networks:
       - app-network
+      - dokploy-network
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:${Port:-3002}/api/health"]
       interval: 30s
@@ -63,3 +62,5 @@ volumes:
 networks:
   app-network:
     driver: bridge
+  dokploy-network:
+    external: true
