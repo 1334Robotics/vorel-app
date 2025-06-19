@@ -1,6 +1,7 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const { searchEventsDB, bulkInsertEvents, initializeDB } = require('./database');
 require('dotenv').config();
 
 const Nexus_Api_Key = process.env.Nexus_Api_Key;
@@ -77,7 +78,7 @@ async function fetchTBAEventDetails(eventKey) {
   return response.data;
 }
 
-// Modify the updateEventsCache function to use a temporary file first
+// Modify the updateEventsCache function to also populate database
 async function updateEventsCache(year = new Date().getFullYear()) {
   try {
     console.log(`Updating TBA events cache for ${year}...`);
@@ -124,6 +125,29 @@ async function updateEventsCache(year = new Date().getFullYear()) {
     fs.renameSync(tempCachePath, cachePath);
     
     console.log(`Cache updated with ${formattedEvents.length} events for ${year}`);
+    
+    // Also populate database if available
+    try {
+      const dbEvents = events.map(event => ({
+        key: event.key,
+        year: year,
+        name: event.name, // Don't add year prefix for database
+        city: event.city,
+        state_prov: event.state_prov,
+        country: event.country || 'USA',
+        start_date: event.start_date || null,
+        end_date: event.end_date || null,
+        week: event.week || null,
+        event_type: event.event_type || null,
+        raw_data: event // Store original TBA data
+      }));
+        await bulkInsertEvents(dbEvents);
+      console.log(`Database updated with ${dbEvents.length} events for ${year}`);
+      
+    } catch (dbError) {
+      console.log(`Database update failed for ${year}, continuing with cache-only: ${dbError.message}`);
+    }
+    
     return formattedEvents;
   } catch (error) {
     console.error(`Error updating events cache for ${year}:`, error.message);
@@ -224,6 +248,25 @@ async function searchTBAEvents(query, preferredYear = new Date().getFullYear()) 
     // Fallback to direct API call for the preferred year if cache fails
     console.log('Falling back to direct TBA API call');
     return fallbackSearchTBAEvents(query, preferredYear);
+  }
+}
+
+// Enhanced search function that uses MariaDB when available, falls back to cache
+async function searchTBAEventsEnhanced(query, preferredYear = new Date().getFullYear()) {
+  try {
+    // Try database search first
+    const dbResults = await searchEventsDB(query, 10);
+      if (dbResults && dbResults.length > 0) {
+      console.log(`Database search returned ${dbResults.length} results for: "${query}"`);
+      return dbResults;
+    }
+    
+    console.log('Falling back to cache-based search');
+    return await searchTBAEvents(query, preferredYear);
+    
+  } catch (error) {
+    console.error('Database search failed, using cache fallback:', error.message);
+    return await searchTBAEvents(query, preferredYear);
   }
 }
 
@@ -419,8 +462,26 @@ function initializeEventCache() {
   }, 60 * 60 * 1000); // Check every hour
 }
 
-// Run initialization when module is loaded
-initializeEventCache();
+// Replace the initializeEventCache function with enhanced version
+function initializeEventCacheEnhanced() {  // Initialize database first
+  initializeDB().then(() => {
+    console.log('Database initialized, starting cache management...');
+    // Initial cache management (which now also populates database)
+    manageEventCache();
+    
+    // Set up hourly checks
+    setInterval(() => {
+      manageEventCache();
+    }, 60 * 60 * 1000); // Check every hour
+  }).catch(err => {
+    console.error('Database initialization failed, using cache-only mode:', err.message);
+    // Fall back to original cache system
+    initializeEventCache();
+  });
+}
+
+// Run enhanced initialization when module is loaded
+// initializeEventCacheEnhanced(); // Commented out - let main server control initialization
 
 module.exports = {
   fetchEventDetails,
@@ -428,6 +489,8 @@ module.exports = {
   fetchEventMatchResults,
   fetchTBAEventDetails,
   searchTBAEvents,
+  searchTBAEventsEnhanced, // Export enhanced search function
   updateEventsCache,
-  mapEventKey
+  mapEventKey,
+  initializeEventCacheEnhanced // Export the enhanced initialization function
 };
