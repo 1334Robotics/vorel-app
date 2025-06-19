@@ -305,9 +305,7 @@
         e.target.style.borderColor = '';
         const errorMsg = document.querySelector('.team-error');
         if (errorMsg) errorMsg.remove();
-      });
-
-      searchInput.addEventListener('input', (e) => {
+      });      searchInput.addEventListener('input', (e) => {
         const query = e.target.value.trim();
         
         eventKeyInput.value = '';
@@ -327,6 +325,13 @@
         searchTimeout = setTimeout(() => {
           fetchEvents(query);
         }, 300);
+      });
+      
+      // Also reposition when the search input gains focus
+      searchInput.addEventListener('focus', () => {
+        if (searchResults.classList.contains('active')) {
+          setTimeout(() => positionSearchResults(), 10);
+        }
       });
       
       searchInput.addEventListener('keydown', (e) => {
@@ -362,10 +367,23 @@
           closeSearchResults();
         }
       });
-      
-      document.addEventListener('click', (e) => {
+        document.addEventListener('click', (e) => {
         if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
           closeSearchResults();
+        }
+      });
+      
+      // Reposition dropdown on window resize
+      window.addEventListener('resize', () => {
+        if (searchResults.classList.contains('active')) {
+          positionSearchResults();
+        }
+      });
+      
+      // Also reposition on scroll
+      window.addEventListener('scroll', () => {
+        if (searchResults.classList.contains('active')) {
+          positionSearchResults();
         }
       });
       
@@ -410,8 +428,7 @@
             searchResults.classList.add('active');
           });
       }
-      
-      function displayResults(events) {
+        function displayResults(events) {
         searchResults.innerHTML = '';
         
         if (events.length === 0) {
@@ -450,8 +467,65 @@
           });
         }
         
+        // Position the dropdown appropriately
+        positionSearchResults();
+        
         searchResults.classList.add('active');
         selectedIndex = -1;
+      }      function positionSearchResults() {
+        const rect = searchInput.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const footerElement = document.querySelector('.footer');
+        const footerRect = footerElement ? footerElement.getBoundingClientRect() : null;
+        
+        // Calculate available space more precisely
+        let spaceBelow, spaceAbove;
+        
+        if (footerRect && footerRect.top > 0) {
+          // Footer is visible, use footer position
+          spaceBelow = Math.max(0, footerRect.top - rect.bottom - 20); // 20px margin
+        } else {
+          // Footer not visible or below viewport
+          spaceBelow = Math.max(0, viewportHeight - rect.bottom - 20);
+        }
+        
+        spaceAbove = Math.max(0, rect.top - 20); // 20px margin from top
+        
+        const minDropdownHeight = 80; // Minimum useful height
+        const maxDropdownHeight = 250; // Original max height
+        
+        // Determine if we should show above or below
+        let shouldShowAbove = false;
+        let finalHeight = maxDropdownHeight;
+        
+        if (spaceBelow >= minDropdownHeight) {
+          // Enough space below
+          shouldShowAbove = false;
+          finalHeight = Math.min(spaceBelow, maxDropdownHeight);
+        } else if (spaceAbove >= minDropdownHeight) {
+          // Not enough space below, but enough above
+          shouldShowAbove = true;
+          finalHeight = Math.min(spaceAbove, maxDropdownHeight);
+        } else {
+          // Not enough space in either direction, use the larger space
+          if (spaceAbove > spaceBelow) {
+            shouldShowAbove = true;
+            finalHeight = Math.max(spaceAbove, 60); // Absolute minimum
+          } else {
+            shouldShowAbove = false;
+            finalHeight = Math.max(spaceBelow, 60); // Absolute minimum
+          }
+        }
+        
+        // Apply positioning
+        if (shouldShowAbove) {
+          searchResults.classList.add('show-above');
+        } else {
+          searchResults.classList.remove('show-above');
+        }
+        
+        // Set the height
+        searchResults.style.maxHeight = `${finalHeight}px`;
       }
     });
   </script>
