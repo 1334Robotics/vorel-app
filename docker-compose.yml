@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/1334robotics/vorel-app:MariaDB
+    image: ghcr.io/1334robotics/vorel-app:latest
     restart: always
     links:
       - mariadb
