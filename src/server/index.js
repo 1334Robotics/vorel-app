@@ -95,7 +95,7 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 3002;
 
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   
   // Initialize event cache and database after server starts
