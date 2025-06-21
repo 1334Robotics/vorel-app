@@ -213,11 +213,12 @@
       const eventKeyInput = document.getElementById('eventKey');
       const searchResults = document.getElementById('searchResults');
       const teamKeyInput = document.getElementById('teamKey');
-      
-      let selectedIndex = -1;
+        let selectedIndex = -1;
       let searchTimeout;
       let teamSearchTimeout;
       let events = [];
+      let lastAutoSelectedTeam = null; // Track which team was auto-selected
+      let isManualSelection = false; // Track if user manually selected an event
       
       const form = document.querySelector('form');
       const viewMatchesBtn = document.getElementById('viewMatchesBtn');
@@ -315,20 +316,34 @@
           loadingBars.style.display = 'inline-flex';
           if (svgIcon) svgIcon.style.display = 'none';
         }
-      });
-
-      document.getElementById('teamKey').addEventListener('input', (e) => {
+      });      document.getElementById('teamKey').addEventListener('input', (e) => {
         e.target.style.borderColor = '';
         const errorMsg = document.querySelector('.team-error');
         if (errorMsg) errorMsg.remove();
         
         // Handle team events auto-population
         const teamNumber = e.target.value.trim();
+        const numericTeamKey = teamNumber.replace(/^frc/i, '');
+        
+        // If team number changed and we had an auto-selection for a different team, clear it
+        if (lastAutoSelectedTeam && lastAutoSelectedTeam !== numericTeamKey && !isManualSelection) {
+          searchInput.value = '';
+          eventKeyInput.value = '';
+          lastAutoSelectedTeam = null;
+        }
+        
         clearTimeout(teamSearchTimeout);
-          if (teamNumber.length >= 1 && /^\d+$/.test(teamNumber.replace(/^frc/i, ''))) {
+        if (teamNumber.length >= 1 && /^\d+$/.test(numericTeamKey)) {
           teamSearchTimeout = setTimeout(() => {
             fetchTeamEvents(teamNumber);
           }, 500); // Slightly longer delay for team search
+        } else {
+          // If team number is cleared or invalid, clear auto-selection
+          if (!isManualSelection) {
+            searchInput.value = '';
+            eventKeyInput.value = '';
+            lastAutoSelectedTeam = null;
+          }
         }
       });
 
@@ -343,14 +358,26 @@
               throw new Error(`API responded with status: ${response.status}`);
             }
             return response.json();
-          })
-          .then(teamEvents => {
+          })          .then(teamEvents => {
             if (teamEvents.length > 0) {
               // Find the best event to auto-populate
-              if (bestEvent && !searchInput.value.trim() && !eventKeyInput.value.trim()) {
-                // Only auto-populate if the user hasn't already selected an event
+              const bestEvent = findBestEventForTeam(teamEvents);
+              const numericTeamKey = teamNumber.replace(/^frc/i, '');
+              
+              // Auto-populate if:
+              // 1. We have a best event AND
+              // 2. Either the fields are empty OR we're updating a previous auto-selection for a different team
+              const shouldAutoPopulate = bestEvent && (
+                (!searchInput.value.trim() && !eventKeyInput.value.trim()) || // Fields are empty
+                (lastAutoSelectedTeam && lastAutoSelectedTeam !== numericTeamKey && !isManualSelection) // Different team, not manual
+              );
+              
+              if (shouldAutoPopulate) {
+                // Only auto-populate if the user hasn't manually selected an event
                 searchInput.value = bestEvent.name;
                 eventKeyInput.value = bestEvent.key;
+                lastAutoSelectedTeam = numericTeamKey;
+                isManualSelection = false; // This is an auto-selection
                 
                 // Clear any existing search results
                 searchResults.innerHTML = '';
@@ -367,7 +394,8 @@
                   setTimeout(() => {
                     eventHint.textContent = originalText;
                     eventHint.classList.remove('auto-selected');
-                    searchInput.style.borderColor = '';                  }, 4000);
+                    searchInput.style.borderColor = '';
+                  }, 4000);
                 }
               }
             } else if (retryCount === 0) {
@@ -443,15 +471,23 @@
         
         // Fallback to first event if status detection failed
         return teamEvents[0] || null;
-      }
-
-      // ...existing event search handlers...
+      }      // ...existing event search handlers...
       searchInput.addEventListener('input', (e) => {
         const query = e.target.value.trim();
+        
+        // Mark as manual input if user is typing (not programmatic)
+        if (e.isTrusted) {
+          isManualSelection = true;
+        }
         
         // If the user clears the search field, also clear the hidden event key
         if (!query) {
           eventKeyInput.value = '';
+          if (e.isTrusted) {
+            // User manually cleared, reset auto-selection tracking
+            lastAutoSelectedTeam = null;
+            isManualSelection = false;
+          }
         }
         
         eventKeyInput.value = '';
@@ -602,10 +638,11 @@
             item.appendChild(nameDiv);
             item.appendChild(detailsDiv);
             item.appendChild(keyDiv);
-            
-            item.addEventListener('click', () => {
+              item.addEventListener('click', () => {
               searchInput.value = event.name;
               eventKeyInput.value = event.key;
+              isManualSelection = true; // Mark as manual selection
+              lastAutoSelectedTeam = null; // Clear auto-selection tracking
               closeSearchResults();
             });
             
