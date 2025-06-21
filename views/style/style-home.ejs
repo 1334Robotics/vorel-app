@@ -235,6 +235,16 @@
     margin-top: 6px;
   }
 
+  .input-hint.auto-selected {
+    color: var(--primary);
+    font-weight: 500;
+  }
+
+  .input-hint.auto-selected::before {
+    content: "✓ ";
+    font-weight: bold;
+  }
+
   input[type="text"] {
     width: 100%;
     padding: 14px 16px;
