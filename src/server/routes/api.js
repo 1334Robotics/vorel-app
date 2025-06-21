@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { fetchEventDetails, fetchTeamStatusAtEvent, fetchEventMatchResults, searchTBAEventsEnhanced } = require('../helpers/api');
+const { fetchEventDetails, fetchTeamStatusAtEvent, fetchEventMatchResults, searchTBAEventsEnhanced, getTeamEventsWithCache } = require('../helpers/api');
 const { extractRPRelevantData } = require('../helpers/matches');
 const crypto = require('crypto');
 
@@ -587,6 +587,31 @@ router.get("/events/search", async (req, res) => {
   } catch (error) {
     console.error("Error searching events:", error);
     res.status(500).json({ error: "Failed to search events" });
+  }
+});
+
+// Team events endpoint - returns events for a specific team, prioritized by date
+router.get("/team-events", async (req, res) => {
+  try {
+    const { teamKey } = req.query;
+
+    if (!teamKey) {
+      return res.status(400).json({ error: "Missing teamKey parameter" });
+    }    // Remove 'frc' prefix if present for consistent handling
+    const numericTeamKey = teamKey.replace(/^frc/i, '');
+    
+    // Validate team key format (should be numeric, allow single digits)
+    if (!/^\d{1,5}$/.test(numericTeamKey)) {
+      return res.status(400).json({ error: "Invalid team key format" });
+    }    const currentYear = new Date().getFullYear();
+    
+    // Only get events for current year (for auto-suggestions)
+    const currentYearEvents = await getTeamEventsWithCache(numericTeamKey, currentYear);
+    
+    // Return the prioritized events (no need to check next year for auto-suggestions)
+    res.json(currentYearEvents);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch team events" });
   }
 });
 

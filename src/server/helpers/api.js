@@ -13,6 +13,7 @@ const TBA_BASE_URL = 'https://www.thebluealliance.com/api/v3';
 // Path to the cache file - events will be stored by year
 const CACHE_DIR = path.join(__dirname, '../../../.cache');
 const getEventCachePath = (year) => path.join(CACHE_DIR, `tba-events-${year}.json`);
+const getTeamEventsCachePath = (teamKey, year) => path.join(CACHE_DIR, `team-events-${teamKey}-${year}.json`);
 
 // Make sure cache directory exists
 if (!fs.existsSync(CACHE_DIR)) {
@@ -480,6 +481,112 @@ function initializeEventCacheEnhanced() {  // Initialize database first
   });
 }
 
+// Fetch team events from TBA API (current year only)
+async function fetchTeamEvents(teamKey, year = new Date().getFullYear()) {
+  const currentYear = new Date().getFullYear();
+  
+  // Only fetch current year events for auto-suggestions
+  if (year !== currentYear) {
+    return [];
+  }
+  
+  const formattedTeamKey = teamKey.startsWith('frc') ? teamKey : `frc${teamKey}`;
+  const url = `${TBA_BASE_URL}/team/${formattedTeamKey}/events/${year}`;
+  
+  const response = await axios.get(url, {
+    headers: {
+      'X-TBA-Auth-Key': TBA_API_Key
+    }
+  });
+  
+  return response.data;
+}
+
+// Cache team events using MariaDB (current year only)
+async function cacheTeamEvents(teamKey, year = new Date().getFullYear()) {
+  try {
+    const currentYear = new Date().getFullYear();
+    
+    // Only cache current year events
+    if (year !== currentYear) {
+      return [];
+    }
+    
+    const numericTeamKey = teamKey.replace('frc', '');
+    const events = await fetchTeamEvents(teamKey, year);
+    
+    if (events.length === 0) {
+      return [];
+    }
+    
+    // Format events for database storage
+    const formattedEvents = events.map(event => {
+      return {
+        key: event.key,
+        name: `${year} ${event.name}`,
+        year: year,
+        city: event.city || null,
+        state_prov: event.state_prov || null,
+        startDate: event.start_date,
+        endDate: event.end_date,
+      };
+    });
+    
+    // Use MariaDB to cache the events
+    const { cacheTeamEventsDB } = require('./database');
+    await cacheTeamEventsDB(numericTeamKey, formattedEvents);
+    
+    return formattedEvents;
+  } catch (error) {
+    // Silently handle team not found errors to avoid log spam
+    if (error.response && error.response.status === 404) {
+      return []; // Return empty array for non-existent teams
+    }
+    throw error;
+  }
+}
+
+// Get team events with caching (prioritizes current/ongoing events)
+// Get team events with MariaDB caching (current year only)
+async function getTeamEventsWithCache(teamKey, year = new Date().getFullYear()) {
+  try {
+    const currentYear = new Date().getFullYear();
+    
+    // Only work with current year events for auto-suggestions
+    if (year !== currentYear) {
+      return [];
+    }
+    
+    const numericTeamKey = teamKey.replace('frc', '');
+    
+    // Try to get from MariaDB cache first
+    const { getTeamEventsDB } = require('./database');
+    const cachedEvents = await getTeamEventsDB(numericTeamKey);
+    
+    if (cachedEvents !== null && cachedEvents.length > 0) {
+      return cachedEvents;
+    }
+    
+    // Cache is stale or doesn't exist, fetch fresh data
+    const freshEvents = await cacheTeamEvents(numericTeamKey, year);
+    
+    // If fresh fetch succeeded, get the formatted events from DB
+    if (freshEvents.length > 0) {
+      const formattedEvents = await getTeamEventsDB(numericTeamKey);
+      return formattedEvents || [];
+    }
+    
+    return [];
+  } catch (error) {
+    // Silently handle team not found errors
+    if (error.response && error.response.status === 404) {
+      return []; // Return empty array for non-existent teams
+    }
+    
+    return []; // Return empty array if all else fails
+  }
+}
+
 // Run enhanced initialization when module is loaded
 // initializeEventCacheEnhanced(); // Commented out - let main server control initialization
 
@@ -488,6 +595,9 @@ module.exports = {
   fetchTeamStatusAtEvent,
   fetchEventMatchResults,
   fetchTBAEventDetails,
+  fetchTeamEvents,
+  cacheTeamEvents,
+  getTeamEventsWithCache,
   searchTBAEvents,
   searchTBAEventsEnhanced, // Export enhanced search function
   updateEventsCache,

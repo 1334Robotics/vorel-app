@@ -150,11 +150,10 @@
         <div class="search-section">
           <h2 class="search-title">View Your Team's Matches</h2>
           
-          <form method="get" action="/">
-            <div class="form-row">
+          <form method="get" action="/">            <div class="form-row">
               <label for="teamKey">Team Number</label>
               <input type="text" name="teamKey" id="teamKey" placeholder="Enter team number (e.g., 1334 or frc1334)" />
-              <span class="input-hint">Enter your team number with or without the "frc" prefix</span>
+              <span class="input-hint">Enter your team number to auto-find your closest event</span>
             </div>
             
             <div class="form-row">
@@ -213,9 +212,11 @@
       const searchInput = document.getElementById('eventSearch');
       const eventKeyInput = document.getElementById('eventKey');
       const searchResults = document.getElementById('searchResults');
+      const teamKeyInput = document.getElementById('teamKey');
       
       let selectedIndex = -1;
       let searchTimeout;
+      let teamSearchTimeout;
       let events = [];
       
       const form = document.querySelector('form');
@@ -254,8 +255,7 @@
         const eventKeyInput = document.getElementById('eventKey');
         
         eventSearchInput.removeAttribute('name');
-        
-        if (!teamKeyInput.value.trim()) {
+          if (!teamKeyInput.value.trim()) {
           e.preventDefault();
           
           let teamErrorMsg = document.querySelector('.team-error');
@@ -288,6 +288,22 @@
           
           eventSearchInput.style.borderColor = '#ff5252';
         }
+        
+        // Special validation: if no event is selected but team has events, suggest using auto-selection
+        if (!eventSearchInput.value.trim() && !eventKeyInput.value.trim() && teamKeyInput.value.trim()) {
+          e.preventDefault();
+          
+          let eventErrorMsg = document.querySelector('.event-error');
+          if (!eventErrorMsg) {
+            eventErrorMsg = document.createElement('div');
+            eventErrorMsg.className = 'event-error';
+            eventErrorMsg.style.color = '#ff9800';
+            eventErrorMsg.style.fontSize = '0.9em';
+            eventErrorMsg.style.marginTop = '5px';
+            eventErrorMsg.textContent = 'Please wait for event auto-selection or manually search for an event';
+            eventSearchInput.parentNode.appendChild(eventErrorMsg);
+          }
+        }
 
         // Only show loading if validation passes
         if (
@@ -305,8 +321,138 @@
         e.target.style.borderColor = '';
         const errorMsg = document.querySelector('.team-error');
         if (errorMsg) errorMsg.remove();
-      });      searchInput.addEventListener('input', (e) => {
+        
+        // Handle team events auto-population
+        const teamNumber = e.target.value.trim();
+        clearTimeout(teamSearchTimeout);
+          if (teamNumber.length >= 1 && /^\d+$/.test(teamNumber.replace(/^frc/i, ''))) {
+          teamSearchTimeout = setTimeout(() => {
+            fetchTeamEvents(teamNumber);
+          }, 500); // Slightly longer delay for team search
+        }
+      });
+
+      // Function to fetch and auto-populate team events
+      function fetchTeamEvents(teamNumber, retryCount = 0) {
+        const numericTeamKey = teamNumber.replace(/^frc/i, '');
+        const maxRetries = 2;
+        
+        fetch(`/api/team-events?teamKey=${encodeURIComponent(numericTeamKey)}`)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`API responded with status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(teamEvents => {
+            if (teamEvents.length > 0) {
+              // Find the best event to auto-populate
+              if (bestEvent && !searchInput.value.trim() && !eventKeyInput.value.trim()) {
+                // Only auto-populate if the user hasn't already selected an event
+                searchInput.value = bestEvent.name;
+                eventKeyInput.value = bestEvent.key;
+                
+                // Clear any existing search results
+                searchResults.innerHTML = '';
+                searchResults.classList.remove('active');
+                
+                // Visual feedback that an event was auto-selected
+                searchInput.style.borderColor = '#4fc3f7';
+                const eventHint = document.querySelector('#eventSearch').parentNode.querySelector('.input-hint');
+                if (eventHint) {
+                  const originalText = eventHint.textContent;
+                  eventHint.textContent = `Auto-selected ${bestEvent.status} event: ${bestEvent.name}`;
+                  eventHint.classList.add('auto-selected');
+                  
+                  setTimeout(() => {
+                    eventHint.textContent = originalText;
+                    eventHint.classList.remove('auto-selected');
+                    searchInput.style.borderColor = '';                  }, 4000);
+                }
+              }
+            } else if (retryCount === 0) {
+              // No events found, but this might be because cache is being built
+              // Show a "loading" state and retry once
+              const teamHint = teamKeyInput.parentNode.querySelector('.input-hint');
+              if (teamHint) {
+                const originalText = teamHint.textContent;
+                teamHint.textContent = 'Loading team events...';
+                teamHint.style.color = '#4fc3f7';
+                
+                setTimeout(() => {
+                  teamHint.textContent = originalText;
+                  teamHint.style.color = '';
+                }, 2000);
+              }
+              
+              // Retry after 2 seconds
+              setTimeout(() => {
+                fetchTeamEvents(teamNumber, retryCount + 1);
+              }, 2000);
+            }
+          })
+          .catch(error => {
+            console.log('Team events fetch failed:', error.message);
+            
+            // Retry on certain errors
+            if (retryCount < maxRetries && (error.message.includes('500') || error.message.includes('timeout'))) {
+              console.log(`Retrying team events fetch (attempt ${retryCount + 1}/${maxRetries})`);
+              setTimeout(() => {
+                fetchTeamEvents(teamNumber, retryCount + 1);
+              }, 1000 * (retryCount + 1)); // Exponential backoff
+              return;
+            }
+            
+            // Show error feedback only after all retries failed
+            if (retryCount >= maxRetries) {
+              const teamHint = teamKeyInput.parentNode.querySelector('.input-hint');
+              if (teamHint) {
+                const originalText = teamHint.textContent;
+                teamHint.textContent = 'Unable to fetch team events. Please try manually searching.';
+                teamHint.style.color = '#ff9800';
+                
+                setTimeout(() => {
+                  teamHint.textContent = originalText;
+                  teamHint.style.color = '';
+                }, 4000);
+              }            }
+          });
+      }
+      
+      // Function to determine the best event for a team
+      function findBestEventForTeam(teamEvents) {
+        // Priority: ongoing > upcoming (closest) > completed (most recent)
+        
+        // First, look for ongoing events (prioritize most recently started)
+        const ongoingEvents = teamEvents.filter(event => event.status === 'ongoing');
+        if (ongoingEvents.length > 0) {
+          return ongoingEvents[0]; // Return first ongoing event (already sorted)
+        }
+        
+        // Then, look for upcoming events (closest to current date)
+        const upcomingEvents = teamEvents.filter(event => event.status === 'upcoming');
+        if (upcomingEvents.length > 0) {
+          return upcomingEvents[0]; // Return closest upcoming event
+        }
+        
+        // Finally, look for recently completed events (most recent first)
+        const completedEvents = teamEvents.filter(event => event.status === 'completed');
+        if (completedEvents.length > 0) {
+          return completedEvents[0]; // Return most recent completed event
+        }
+        
+        // Fallback to first event if status detection failed
+        return teamEvents[0] || null;
+      }
+
+      // ...existing event search handlers...
+      searchInput.addEventListener('input', (e) => {
         const query = e.target.value.trim();
+        
+        // If the user clears the search field, also clear the hidden event key
+        if (!query) {
+          eventKeyInput.value = '';
+        }
         
         eventKeyInput.value = '';
         
@@ -359,15 +505,15 @@
             // Auto-select the first item if no item is selected
             selectedIndex = 0;
             updateSelection(items);
-            items[0].click();
-          }
+            items[0].click();          }
         }
         
         if (e.key === 'Escape') {
           closeSearchResults();
         }
       });
-        document.addEventListener('click', (e) => {
+      
+      document.addEventListener('click', (e) => {
         if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
           closeSearchResults();
         }
@@ -424,11 +570,11 @@
             errorElement.style.color = '#ff5252';
             errorElement.textContent = 'Unable to fetch events. Please check your connection and try again.';
             searchResults.appendChild(errorElement);
-            
-            searchResults.classList.add('active');
+              searchResults.classList.add('active');
           });
       }
-        function displayResults(events) {
+      
+      function displayResults(events) {
         searchResults.innerHTML = '';
         
         if (events.length === 0) {
@@ -469,10 +615,11 @@
         
         // Position the dropdown appropriately
         positionSearchResults();
-        
-        searchResults.classList.add('active');
+          searchResults.classList.add('active');
         selectedIndex = -1;
-      }      function positionSearchResults() {
+      }
+      
+      function positionSearchResults() {
         const rect = searchInput.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
         const footerElement = document.querySelector('.footer');
