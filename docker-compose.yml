@@ -2,6 +2,7 @@ services:
   app:
     image: ghcr.io/1334robotics/vorel-app:latest
     restart: always
+    container_name: vorel-app
     links:
       - mariadb
     ports:
@@ -33,6 +34,7 @@ services:
   mariadb:
     image: mariadb:11
     restart: always
+    container_name: vorel-database
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MYSQL_DATABASE=vorel
@@ -50,6 +52,7 @@ services:
       start_period: 30s
   watchtower:
     image: containrrr/watchtower
+    container_name: vorel-watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --interval 60 --cleanup --rolling-restart --scope vorel-app --label-enable
