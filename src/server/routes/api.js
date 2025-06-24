@@ -13,7 +13,7 @@ console.log('SSE routes loaded');
 
 // Health endpoint for Docker healthchecks
 router.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: Date.now(), uptime: process.uptime() });
+  res.status(200).json({ status: 'ok', timestamp: Date.now(), uptime: process.uptime(), readme: 'Why are you Here?' });
 });
 
 // Endpoint to check active SSE connections 
