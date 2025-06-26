@@ -21,19 +21,7 @@ const embedRoutes = require("./routes/embed");
 const { initializeEventCacheEnhanced } = require("./helpers/api");
 
 // Middleware
-// app.use(compression({
-//   filter: (req, res) => {
-//     // Skip compression for social media crawlers to ensure proper meta tag parsing
-//     const userAgent = req.get('User-Agent') || '';
-//     const isSocialCrawler = /bot|crawler|spider|facebook|twitter|discord|slack|telegram|whatsapp/i.test(userAgent);
-    
-//     if (isSocialCrawler) {
-//       return false;
-//     }
-    
-//     return compression.filter(req, res);
-//   }
-// }));
+app.use(compression());
 app.use(cors());
 app.use(express.json());
 // Security headers
@@ -56,11 +44,11 @@ app.use((req, res, next) => {
       if (err) {
         if (callback) return callback(err);
         return next(err);
-      }
-      // Remove HTML comments and CSS comment blocks in inline styles
+      }      // Remove HTML comments, CSS comment blocks, and JavaScript comments
       const cleanedHtml = html
         .replace(/<!--[\s\S]*?-->/g, '')
-        .replace(/\/\*[\s\S]*?\*\//g, '');
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '');
       if (callback) return callback(null, cleanedHtml);
       res.send(cleanedHtml);
     });
