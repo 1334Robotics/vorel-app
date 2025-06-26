@@ -21,19 +21,19 @@ const embedRoutes = require("./routes/embed");
 const { initializeEventCacheEnhanced } = require("./helpers/api");
 
 // Middleware
-app.use(compression({
-  filter: (req, res) => {
-    // Skip compression for social media crawlers to ensure proper meta tag parsing
-    const userAgent = req.get('User-Agent') || '';
-    const isSocialCrawler = /bot|crawler|spider|facebook|twitter|discord|slack|telegram|whatsapp/i.test(userAgent);
+// app.use(compression({
+//   filter: (req, res) => {
+//     // Skip compression for social media crawlers to ensure proper meta tag parsing
+//     const userAgent = req.get('User-Agent') || '';
+//     const isSocialCrawler = /bot|crawler|spider|facebook|twitter|discord|slack|telegram|whatsapp/i.test(userAgent);
     
-    if (isSocialCrawler) {
-      return false;
-    }
+//     if (isSocialCrawler) {
+//       return false;
+//     }
     
-    return compression.filter(req, res);
-  }
-}));
+//     return compression.filter(req, res);
+//   }
+// }));
 app.use(cors());
 app.use(express.json());
 // Security headers
