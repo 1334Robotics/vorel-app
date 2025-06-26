@@ -45,10 +45,15 @@ app.use((req, res, next) => {
         if (callback) return callback(err);
         return next(err);
       }      // Remove HTML comments, CSS comment blocks, and JavaScript comments
-      const cleanedHtml = html
+      let cleanedHtml = html
         .replace(/<!--[\s\S]*?-->/g, '')
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/\/\/.*$/gm, '');
+        .replace(/\/\*[\s\S]*?\*\//g, '');
+      
+      // Remove JavaScript single-line comments only within script tags
+      cleanedHtml = cleanedHtml.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (match, scriptContent) => {
+        const cleanedScript = scriptContent.replace(/\/\/.*$/gm, '');
+        return match.replace(scriptContent, cleanedScript);
+      });
       if (callback) return callback(null, cleanedHtml);
       res.send(cleanedHtml);
     });
