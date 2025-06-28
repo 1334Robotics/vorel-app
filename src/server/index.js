@@ -13,6 +13,7 @@ under certain conditions. TO VIEW THE LICENSE VISIT OUR [GITHUB](https://github.
 
 // Initialize database connection
 const { initializeDB } = require("./helpers/database");
+const { initializeChangelog } = require("./helpers/changelog");
 
 const app = express();
 const Routes = require("./routes/apex");
@@ -91,8 +92,9 @@ const PORT = process.env.PORT || 3002;
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   
-  // Initialize event cache and database after server starts
+  // Initialize event cache, database, and changelog after server starts
   initializeEventCacheEnhanced();
+  initializeChangelog();
 });
 
 // Configure server timeouts for Cloudflare compatibility

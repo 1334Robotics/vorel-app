@@ -308,8 +308,22 @@ router.get('/preview', async (req, res) => {
 });
 
 // Add this route for the changelog page
-router.get('/changelog', (req, res) => {
-  res.render('pages/changelog');
+router.get('/changelog', async (req, res) => {
+  try {
+    const { getChangelogData, getFallbackChangelog } = require('../helpers/changelog');
+    let changelogData = await getChangelogData();
+    
+    // If no data, use fallback
+    if (!changelogData || changelogData.length === 0) {
+      changelogData = getFallbackChangelog();
+    }
+    
+    res.render('pages/changelog', { changelogData });
+  } catch (error) {
+    console.error('Error loading changelog:', error);
+    const { getFallbackChangelog } = require('../helpers/changelog');
+    res.render('pages/changelog', { changelogData: getFallbackChangelog() });
+  }
 });
 
 
