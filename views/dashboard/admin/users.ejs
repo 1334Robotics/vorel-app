@@ -263,6 +263,7 @@
               </div>
               ${!isProtected ? `
                 <div class="notice-actions">
+                  <!--
                   ${isActive ? `
                     <button onclick="toggleUser('${user.github_username}', false)" class="btn-warning" 
                             title="Temporarily disable login access (user data preserved)">
@@ -274,6 +275,7 @@
                       Restore Access
                     </button>
                   `}
+                  -->
                   <button onclick="removeUser('${user.github_username}')" class="btn-error"
                           title="Permanently delete user from database (cannot be undone)">
                     Delete Permanently
