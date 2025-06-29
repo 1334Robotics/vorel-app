@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Vorel</title>
+  <%- include('../../style/style-admin') %>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Admin Dashboard</h1>
+      <% if (typeof user !== 'undefined' && user) { %>
+        <div class="user-info">
+          <% if (user.avatarUrl) { %>
+            <img src="<%= user.avatarUrl %>" alt="<%= user.username %>" class="user-avatar">
+          <% } %>
+          <span class="user-name"><%= user.displayName || user.username %></span>
+          <form method="post" action="/auth/logout" style="display: inline;">
+            <button type="submit" class="btn-logout">Logout</button>
+          </form>
+        </div>
+      <% } %>
+    </div>
+    
+    <div class="notice-form">
+      <h2>Admin Tools</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+        <a href="/admin/notices" style="text-decoration: none;">
+          <div style="background: var(--surface-hover); border: 1px solid var(--surface-border); border-radius: var(--radius-md); padding: 16px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--surface-border)'" onmouseout="this.style.background='var(--surface-hover)'">
+            <h3 style="margin: 0 0 8px 0; color: var(--info);">📢 Notice Management</h3>
+            <p style="margin: 0; color: var(--text-secondary); font-size: 14px;">Create, edit, and manage system-wide notices</p>
+          </div>
+        </a>
+        
+        <!-- User Management - dynamically enabled/disabled based on database mode -->
+        <div id="userManagementCard" style="background: var(--surface); border: 1px solid var(--surface-border); border-radius: var(--radius-md); padding: 16px; opacity: 0.6;">
+          <h3 style="margin: 0 0 8px 0; color: var(--text-tertiary);">👥 User Management</h3>
+          <p style="margin: 0; color: var(--text-tertiary); font-size: 14px;">Manage admin user accounts and permissions</p>
+        </div>
+        
+        <div style="background: var(--surface); border: 1px solid var(--surface-border); border-radius: var(--radius-md); padding: 16px; opacity: 0.6;">
+          <h3 style="margin: 0 0 8px 0; color: var(--text-tertiary);">⚙️ System Settings</h3>
+          <p style="margin: 0; color: var(--text-tertiary); font-size: 14px;">Configure application settings and preferences (Coming Soon)</p>
+        </div>
+        
+        <div style="background: var(--surface); border: 1px solid var(--surface-border); border-radius: var(--radius-md); padding: 16px; opacity: 0.6;">
+          <h3 style="margin: 0 0 8px 0; color: var(--text-tertiary);">📊 Analytics</h3>
+          <p style="margin: 0; color: var(--text-tertiary); font-size: 14px;">View application usage statistics and metrics (Coming Soon)</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="notices-list">
+      <h2>System Status</h2>
+      <div id="systemStatus">
+        <div class="notice-item">
+          <div class="notice-header">
+            <span class="notice-title">Loading system status...</span>
+            <span class="notice-type type-info">Checking</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadSystemStatus() {
+      try {
+        const response = await fetch('/admin/system-status');
+        const status = await response.json();
+        
+        const statusDiv = document.getElementById('systemStatus');
+        
+        let statusHtml = '';
+        
+        // Database status
+        statusHtml += `
+          <div class="notice-item">
+            <div class="notice-header">
+              <span class="notice-title">Database Connection</span>
+              <span class="notice-type type-${status.database.connected ? 'success' : 'danger'}">
+                ${status.database.connected ? 'Online' : 'Offline'}
+              </span>
+            </div>
+            <div class="notice-content">
+              ${status.database.connected ? 
+                `Database is connected and operational. ${status.database.stats ? 
+                  `${status.database.stats.total_events} events across ${status.database.stats.years_count} years.` : 
+                  'No stats available.'
+                }` : 
+                'Database connection failed or unavailable.'
+              }
+            </div>
+          </div>
+        `;
+        
+        // Encryption status
+        if (status.encryption.error) {
+          statusHtml += `
+            <div class="notice-item">
+              <div class="notice-header">
+                <span class="notice-title">Encryption System</span>
+                <span class="notice-type type-warning">Error</span>
+              </div>
+              <div class="notice-content">${status.encryption.message}</div>
+            </div>
+          `;
+        } else {
+          statusHtml += `
+            <div class="notice-item">
+              <div class="notice-header">
+                <span class="notice-title">Encryption System</span>
+                <span class="notice-type type-success">Active</span>
+              </div>
+              <div class="notice-content">
+                Key created: ${new Date(status.encryption.createdAt).toLocaleString()}<br>
+                Last rotated: ${new Date(status.encryption.lastRotated).toLocaleString()}<br>
+                Next rotation: ${status.encryption.hoursUntilNextRotation} hours<br>
+                Rotation interval: ${status.encryption.rotationIntervalHours} hours
+              </div>
+            </div>
+          `;
+        }
+        
+        // Server metrics
+        const uptimeHours = Math.floor(status.server.uptime / 3600);
+        const uptimeMinutes = Math.floor((status.server.uptime % 3600) / 60);
+        const memoryMB = Math.round(status.server.memory.used / 1024 / 1024);
+        
+        statusHtml += `
+          <div class="notice-item">
+            <div class="notice-header">
+              <span class="notice-title">Server Metrics</span>
+              <span class="notice-type type-info">Online</span>
+            </div>
+            <div class="notice-content">
+              Uptime: ${uptimeHours}h ${uptimeMinutes}m<br>
+              Memory usage: ${memoryMB} MB<br>
+              Node.js version: ${status.server.nodeVersion}
+            </div>
+          </div>
+        `;
+        
+        statusDiv.innerHTML = statusHtml;
+        
+        // Enable user management card if database is connected
+        const userManagementCard = document.getElementById('userManagementCard');
+        if (status.database.connected) {
+          userManagementCard.style.opacity = '1';
+          userManagementCard.style.cursor = 'pointer';
+          userManagementCard.onclick = () => window.location.href = '/admin/users';
+          userManagementCard.onmouseover = () => userManagementCard.style.background = 'var(--surface-border)';
+          userManagementCard.onmouseout = () => userManagementCard.style.background = 'var(--surface-hover)';
+          userManagementCard.style.background = 'var(--surface-hover)';
+          
+          // Update text
+          const h3 = userManagementCard.querySelector('h3');
+          const p = userManagementCard.querySelector('p');
+          h3.style.color = 'var(--success)';
+          p.style.color = 'var(--text-secondary)';
+          p.textContent = 'Manage admin user accounts and permissions';
+        }
+      } catch (error) {
+        console.error('Error loading system status:', error);
+        document.getElementById('systemStatus').innerHTML = `
+          <div class="notice-item">
+            <div class="notice-header">
+              <span class="notice-title">System Status</span>
+              <span class="notice-type type-danger">Error</span>
+            </div>
+            <div class="notice-content">Failed to load system status: ${error.message}</div>
+          </div>
+        `;
+      }
+    }
+
+    // Load system status on page load
+    loadSystemStatus();
+    
+    // Refresh status every 30 seconds
+    setInterval(loadSystemStatus, 30000);
+  </script>
+</body>
+</html>

@@ -85,21 +85,16 @@
           The ultimate companion for FRC teams tracking competition journeys with real-time updates
         </p>
         
-        <div class="api-update-notice">
-          <div class="notice-content">
-            <h3> API Update </h3>
-            <p>Vorel has received an API update to improve the live event data. If you encounter any issues while using the app, please report them to our <a href="https://github.com/1334Robotics/vorel-app/issues" target="_blank" rel="noopener">GitHub Issues</a> page.</p>
-          </div>
-        </div>
-        
-        <!-- <div class="championship-notice">
-          <div class="notice-content">
-            <h3>🎉 Championship Update 🎉</h3>
-            <p>Congratulations to all teams advancing to Championships! We've deployed a temporary workaround for championship division event keys between The Blue Alliance and FIRST Nexus. Your match schedules should now display correctly for all Championship events. </p>
-            <p>We appreciate your patience and apologize for any inconvenience this might have caused!</p>
-          </div>
-        </div>
-         -->
+        <% if (notices && notices.length > 0) { %>
+          <% notices.forEach(notice => { %>
+            <div class="<%= notice.type %>-notice">
+              <div class="notice-content">
+                <h3><%= notice.title %></h3>
+                <p><%- notice.content %></p>
+              </div>
+            </div>
+          <% }); %>
+        <% } %>
         
         <h2 class="section-title">Key Features</h2>
         <div class="features">

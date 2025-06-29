@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { fetchEventDetails, fetchTeamStatusAtEvent, fetchTBAEventDetails} = require('../helpers/api');
 const { processMatchDataWithTBAResults, calculateRecordFromCompletedMatches } = require('../helpers/matches');
+const { getActiveNotices } = require('../helpers/database');
 // const apiRoutes = require('./api');
 
 // GET /test - Returns raw event data
@@ -19,7 +20,15 @@ router.get('/', async (req, res) => {
   
   // If teamKey or eventKey are not provided, render an input form
   if (!teamKey || !eventKey) {
-    return res.render('pages/home');
+    try {
+      // Fetch active notices from database
+      const notices = await getActiveNotices();
+      return res.render('pages/home', { notices });
+    } catch (error) {
+      console.error('Error fetching notices:', error);
+      // Fallback to home page without notices if database error
+      return res.render('pages/home', { notices: [] });
+    }
   }
   
   // Format team number (remove "frc" prefix if present)
