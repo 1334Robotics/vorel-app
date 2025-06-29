@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { fetchEventDetails, fetchTeamStatusAtEvent, fetchEventMatchResults, searchTBAEventsEnhanced, getTeamEventsWithCache } = require('../helpers/api');
 const { extractRPRelevantData } = require('../helpers/matches');
+const { requireAuthAPI } = require('../helpers/auth');
 const crypto = require('crypto');
 
 // SSE connections store with data hashes
@@ -636,6 +637,121 @@ router.get('/db-status', async (req, res) => {
       error: 'Failed to get database status',
       connected: false 
     });
+  }
+});
+
+// Notice Management API Endpoints
+
+// GET all active notices (for public display)
+router.get('/notices', async (req, res) => {
+  try {
+    const { getActiveNotices } = require('../helpers/database');
+    const notices = await getActiveNotices();
+    res.json(notices);
+  } catch (error) {
+    console.error('Error fetching notices:', error);
+    res.status(500).json({ error: 'Failed to fetch notices' });
+  }
+});
+
+// POST create a new notice (admin endpoint - requires auth)
+router.post('/notices', requireAuthAPI, async (req, res) => {
+  try {
+    const { createNotice } = require('../helpers/database');
+    const { title, content, type, is_active, priority, starts_at, expires_at } = req.body;
+    
+    if (!title || !content) {
+      return res.status(400).json({ error: 'Title and content are required' });
+    }
+    
+    const noticeData = {
+      title,
+      content,
+      type: type || 'info',
+      is_active: is_active !== undefined ? is_active : true,
+      priority: priority || 0,
+      starts_at: starts_at || null,
+      expires_at: expires_at || null
+    };
+    
+    const noticeId = await createNotice(noticeData);
+    console.log(`Notice created by ${req.user.username}: "${title}"`);
+    res.status(201).json({ id: Number(noticeId), message: 'Notice created successfully' });
+  } catch (error) {
+    console.error('Error creating notice:', error);
+    res.status(500).json({ error: 'Failed to create notice' });
+  }
+});
+
+// PUT update an existing notice (admin endpoint - requires auth)
+router.put('/notices/:id', requireAuthAPI, async (req, res) => {
+  try {
+    const { updateNotice } = require('../helpers/database');
+    const { id } = req.params;
+    const { title, content, type, is_active, priority, starts_at, expires_at } = req.body;
+    
+    if (!title || !content) {
+      return res.status(400).json({ error: 'Title and content are required' });
+    }
+    
+    const noticeData = {
+      title,
+      content,
+      type: type || 'info',
+      is_active: is_active !== undefined ? is_active : true,
+      priority: priority || 0,
+      starts_at: starts_at || null,
+      expires_at: expires_at || null
+    };
+    
+    const updated = await updateNotice(id, noticeData);
+    if (updated) {
+      console.log(`Notice ${id} updated by ${req.user.username}: "${title}"`);
+      res.json({ message: 'Notice updated successfully' });
+    } else {
+      res.status(404).json({ error: 'Notice not found' });
+    }
+  } catch (error) {
+    console.error('Error updating notice:', error);
+    res.status(500).json({ error: 'Failed to update notice' });
+  }
+});
+
+// DELETE a notice (admin endpoint - requires auth)
+router.delete('/notices/:id', requireAuthAPI, async (req, res) => {
+  try {
+    const { deleteNotice } = require('../helpers/database');
+    const { id } = req.params;
+    
+    const deleted = await deleteNotice(id);
+    if (deleted) {
+      console.log(`Notice ${id} deleted by ${req.user.username}`);
+      res.json({ message: 'Notice deleted successfully' });
+    } else {
+      res.status(404).json({ error: 'Notice not found' });
+    }
+  } catch (error) {
+    console.error('Error deleting notice:', error);
+    res.status(500).json({ error: 'Failed to delete notice' });
+  }
+});
+
+// POST deactivate a notice (soft delete - requires auth)
+router.post('/notices/:id/deactivate', requireAuthAPI, async (req, res) => {
+  try {
+    const { deactivateNotice } = require('../helpers/database');
+    const { id } = req.params;
+    
+    const deactivated = await deactivateNotice(id);
+    if (deactivated) {
+      console.log(`Notice ${id} deactivated by ${req.user.username}`);
+      res.json({ message: 'Notice deactivated successfully' });
+    } else {
+      res.status(404).json({ error: 'Notice not found' });
+    }
+  } catch (error) {
+    console.error('Error deactivating notice:', error);
+    res.status(500).json({ error: 'Failed to deactivate notice' });
   }
 });
 

@@ -181,6 +181,10 @@
   }
 
   /* Notice Sections - Modern Card Style */
+  .info-notice,
+  .warning-notice,
+  .success-notice,
+  .danger-notice,
   .api-update-notice,
   .championship-notice {
     background: var(--surface);
@@ -192,6 +196,7 @@
     overflow: hidden;
   }
 
+  .info-notice::before,
   .api-update-notice::before {
     content: '';
     position: absolute;
@@ -199,9 +204,20 @@
     left: 0;
     width: 4px;
     height: 100%;
-    background: var(--gradient-primary);
+    background: var(--info);
   }
 
+  .warning-notice::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--warning);
+  }
+
+  .success-notice::before,
   .championship-notice::before {
     content: '';
     position: absolute;
@@ -212,6 +228,16 @@
     background: var(--success);
   }
 
+  .danger-notice::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--error);
+  }
+
   .notice-content h3 {
     margin: 0 0 var(--spacing-sm);
     color: var(--text-primary);
@@ -219,11 +245,22 @@
     font-weight: 600;
   }
 
+  .info-notice .notice-content h3,
   .api-update-notice .notice-content h3 {
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--info);
+  }
+
+  .warning-notice .notice-content h3 {
+    color: var(--warning);
+  }
+
+  .success-notice .notice-content h3,
+  .championship-notice .notice-content h3 {
+    color: var(--success);
+  }
+
+  .danger-notice .notice-content h3 {
+    color: var(--error);
   }
 
   .notice-content p {

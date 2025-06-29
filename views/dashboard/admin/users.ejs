@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Management - Vorel Admin</title>
+  <%- include('../../style/style-admin') %>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>User Management</h1>
+      <% if (typeof user !== 'undefined' && user) { %>
+        <div class="user-info">
+          <% if (user.avatarUrl) { %>
+            <img src="<%= user.avatarUrl %>" alt="<%= user.username %>" class="user-avatar">
+          <% } %>
+          <span class="user-name"><%= user.displayName || user.username %></span>
+          <form method="post" action="/auth/logout" style="display: inline;">
+            <button type="submit" class="btn-logout">Logout</button>
+          </form>
+        </div>
+      <% } %>
+    </div>
+    
+    <nav style="margin-bottom: var(--spacing-lg);">
+      <a href="/admin" style="color: var(--primary); text-decoration: none;">← Back to Dashboard</a>
+    </nav>
+    
+    <% if (typeof message !== 'undefined' && message) { %>
+      <div class="message <%= message.type %>">
+        <%= message.text %>
+      </div>
+    <% } %>
+    
+    <div id="urlMessage" style="display: none;"></div>
+    
+    <!-- Custom Modal for confirmations -->
+    <div id="confirmModal" class="modal-overlay" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modalTitle">Confirm Action</h3>
+        </div>
+        <div class="modal-body">
+          <p id="modalMessage">Are you sure?</p>
+          <div id="modalInput" style="display: none;">
+            <label for="confirmInput">Type <strong id="confirmText">DELETE</strong> to confirm:</label>
+            <input type="text" id="confirmInput" placeholder="Type here...">
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="modalConfirm" class="btn-success">Confirm</button>
+          <button id="modalCancel" class="btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="notice-form">
+      <h2>Add New Admin User</h2>
+      <form method="post" action="/admin/users/add">
+        <div class="form-group">
+          <label for="github_username">GitHub Username:</label>
+          <input type="text" id="github_username" name="github_username" required 
+                 placeholder="Enter GitHub username" pattern="[a-zA-Z0-9\-_]+" 
+                 title="GitHub usernames can only contain alphanumeric characters, hyphens, and underscores">
+        </div>
+        
+        <div class="form-group">
+          <label for="role">Role:</label>
+          <select id="role" name="role" required>
+            <option value="admin">Admin</option>
+            <option value="moderator">Moderator</option>
+          </select>
+        </div>
+        
+        <button type="submit" class="btn-success">Add User</button>
+      </form>
+    </div>
+    
+    <div class="notices-list">
+      <h2>Current Admin Users</h2>
+      <div id="adminUsers">
+        <div class="notice-item">
+          <div class="notice-header">
+            <span class="notice-title">Loading admin users...</span>
+            <span class="notice-type type-info">Loading</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Custom Modal Functions
+    function showModal(title, message, options = {}) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('confirmModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalInput = document.getElementById('modalInput');
+        const modalConfirm = document.getElementById('modalConfirm');
+        const modalCancel = document.getElementById('modalCancel');
+        const confirmInput = document.getElementById('confirmInput');
+        const confirmText = document.getElementById('confirmText');
+        
+        // Set content
+        modalTitle.textContent = title;
+        modalMessage.textContent = message;
+        
+        // Configure input if needed
+        if (options.requireInput) {
+          modalInput.style.display = 'block';
+          confirmText.textContent = options.confirmText || 'DELETE';
+          confirmInput.value = '';
+          confirmInput.focus();
+        } else {
+          modalInput.style.display = 'none';
+        }
+        
+        // Configure confirm button
+        modalConfirm.textContent = options.confirmText ? 'Delete' : 'Confirm';
+        modalConfirm.className = options.dangerAction ? 'btn-error' : 'btn-success';
+        
+        // Show modal
+        modal.style.display = 'flex';
+        
+        // Handle confirm
+        const handleConfirm = () => {
+          if (options.requireInput) {
+            const inputValue = confirmInput.value;
+            const expectedValue = options.confirmText || 'DELETE';
+            if (inputValue === expectedValue) {
+              cleanup();
+              resolve(true);
+            } else {
+              showMessage('Confirmation text did not match. Action cancelled.', 'error');
+              confirmInput.focus();
+              confirmInput.select();
+            }
+          } else {
+            cleanup();
+            resolve(true);
+          }
+        };
+        
+        // Handle cancel
+        const handleCancel = () => {
+          cleanup();
+          resolve(false);
+        };
+        
+        // Handle escape key
+        const handleEscape = (e) => {
+          if (e.key === 'Escape') {
+            handleCancel();
+          } else if (e.key === 'Enter' && !options.requireInput) {
+            handleConfirm();
+          }
+        };
+        
+        // Cleanup function
+        const cleanup = () => {
+          modal.style.display = 'none';
+          modalConfirm.removeEventListener('click', handleConfirm);
+          modalCancel.removeEventListener('click', handleCancel);
+          document.removeEventListener('keydown', handleEscape);
+        };
+        
+        // Add event listeners
+        modalConfirm.addEventListener('click', handleConfirm);
+        modalCancel.addEventListener('click', handleCancel);
+        document.addEventListener('keydown', handleEscape);
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            handleCancel();
+          }
+        });
+      });
+    }
+    
+    // Show inline messages
+    function showMessage(message, type = 'info') {
+      const messageDiv = document.getElementById('urlMessage');
+      messageDiv.innerHTML = `<div class="message ${type}">${message}</div>`;
+      messageDiv.style.display = 'block';
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        messageDiv.style.display = 'none';
+      }, 5000);
+    }
+
+    // Check for URL parameters and show messages
+    function checkUrlMessages() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const success = urlParams.get('success');
+      const error = urlParams.get('error');
+      const messageDiv = document.getElementById('urlMessage');
+      
+      if (success) {
+        messageDiv.innerHTML = `<div class="message success">${success}</div>`;
+        messageDiv.style.display = 'block';
+        // Clean URL without page reload
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (error) {
+        messageDiv.innerHTML = `<div class="message error">${error}</div>`;
+        messageDiv.style.display = 'block';
+        // Clean URL without page reload
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+
+    async function loadAdminUsers() {
+      try {
+        const response = await fetch('/admin/users/list');
+        const users = await response.json();
+        
+        // Get current user info for self-protection
+        const currentUser = '<%= user && user.username ? user.username : "" %>';
+        
+        const usersDiv = document.getElementById('adminUsers');
+        
+        if (users.length === 0) {
+          usersDiv.innerHTML = `
+            <div class="notice-item">
+              <div class="notice-header">
+                <span class="notice-title">No admin users found</span>
+                <span class="notice-type type-warning">Empty</span>
+              </div>
+            </div>
+          `;
+          return;
+        }
+        
+        let usersHtml = '';
+        
+        users.forEach(user => {
+          const isEnvUser = user.source === 'env';
+          const isActive = user.is_active !== false;
+          const isCurrentUser = currentUser && user.github_username.toLowerCase() === currentUser.toLowerCase();
+          const isProtected = isEnvUser || isCurrentUser;
+          
+          usersHtml += `
+            <div class="notice-item">
+              <div class="notice-header">
+                <span class="notice-title">@${user.github_username}${isCurrentUser ? ' (You)' : ''}</span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <span class="notice-type type-${user.role === 'admin' ? 'success' : 'info'}">${user.role}</span>
+                  ${isEnvUser ? '<span class="notice-type type-warning">ENV</span>' : ''}
+                  ${isCurrentUser ? '<span class="notice-type type-info">SELF</span>' : ''}
+                  <span class="notice-type type-${isActive ? 'success' : 'danger'}">${isActive ? 'Active' : 'Inactive'}</span>
+                </div>
+              </div>
+              <div class="notice-content">
+                ${user.github_id ? `GitHub ID: ${user.github_id}` : 'GitHub ID not available'}
+                ${user.created_at ? `<br>Added: ${new Date(user.created_at).toLocaleString()}` : ''}
+                ${user.last_login ? `<br>Last Login: ${new Date(user.last_login).toLocaleString()}` : ''}
+                ${isEnvUser ? '<br><strong>Protected:</strong> This user is defined in environment variables and cannot be modified.' : ''}
+                ${isCurrentUser ? '<br><strong>Protected:</strong> You cannot remove or deactivate your own account.' : ''}
+                ${!isActive ? '<br><strong>Status:</strong> This user is deactivated and cannot log in.' : ''}
+              </div>
+              ${!isProtected ? `
+                <div class="notice-actions">
+                  ${isActive ? `
+                    <button onclick="toggleUser('${user.github_username}', false)" class="btn-warning" 
+                            title="Temporarily disable login access (user data preserved)">
+                      Suspend Access
+                    </button>
+                  ` : `
+                    <button onclick="toggleUser('${user.github_username}', true)" class="btn-success"
+                            title="Restore login access for this user">
+                      Restore Access
+                    </button>
+                  `}
+                  <button onclick="removeUser('${user.github_username}')" class="btn-error"
+                          title="Permanently delete user from database (cannot be undone)">
+                    Delete Permanently
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        });
+        
+        usersDiv.innerHTML = usersHtml;
+      } catch (error) {
+        console.error('Error loading admin users:', error);
+        document.getElementById('adminUsers').innerHTML = `
+          <div class="notice-item">
+            <div class="notice-header">
+              <span class="notice-title">Error Loading Users</span>
+              <span class="notice-type type-danger">Error</span>
+            </div>
+            <div class="notice-content">Failed to load admin users: ${error.message}</div>
+          </div>
+        `;
+      }
+    }
+
+    async function toggleUser(username, activate) {
+      const action = activate ? 'restore access for' : 'suspend access for';
+      const explanation = activate ? 
+        'This will allow the user to log in again.' : 
+        'This will prevent the user from logging in, but their data will be preserved.';
+      
+      const confirmed = await showModal(
+        `${activate ? 'Restore' : 'Suspend'} User Access`,
+        `Are you sure you want to ${action} user @${username}?\n\n${explanation}`
+      );
+      
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch('/admin/users/toggle', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: username,
+            is_active: activate
+          })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage(`User @${username} has been ${activate ? 'reactivated' : 'suspended'} successfully.`, 'success');
+          loadAdminUsers(); // Refresh the list
+        } else {
+          showMessage('Error: ' + (result.message || 'Failed to update user'), 'error');
+        }
+      } catch (error) {
+        console.error('Error toggling user:', error);
+        showMessage('Error updating user: ' + error.message, 'error');
+      }
+    }
+
+    async function removeUser(username) {
+      const confirmed = await showModal(
+        'Permanent Deletion Warning',
+        `Are you sure you want to permanently delete user @${username}?\n\nThis will:\n• Completely remove the user from the database\n• Cannot be undone\n• User will need to be re-added manually\n\nConsider "Suspend Access" instead if you want to temporarily disable the user.`,
+        {
+          requireInput: true,
+          confirmText: 'DELETE',
+          dangerAction: true
+        }
+      );
+      
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch('/admin/users/remove', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: username
+          })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage(`User @${username} has been permanently deleted.`, 'success');
+          loadAdminUsers(); // Refresh the list
+        } else {
+          showMessage('Error: ' + (result.message || 'Failed to remove user'), 'error');
+        }
+      } catch (error) {
+        console.error('Error removing user:', error);
+        showMessage('Error removing user: ' + error.message, 'error');
+      }
+    }
+
+    // Load users on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      checkUrlMessages();
+      loadAdminUsers();
+    });
+  </script>
+</body>
+</html>
