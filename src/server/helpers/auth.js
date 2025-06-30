@@ -140,17 +140,25 @@ function initializeAuth() {
 
   // Serialize user for session
   passport.serializeUser((user, done) => {
+    // Store a sessionIssued timestamp for session expiration logic
     done(null, {
       id: user.id,
       username: user.username,
       displayName: user.displayName,
       email: user.email,
-      avatarUrl: user.avatarUrl
+      avatarUrl: user.avatarUrl,
+      sessionIssued: Date.now()
     });
   });
 
   // Deserialize user from session
   passport.deserializeUser((user, done) => {
+    // Check if session is older than 48 hours (172800000 ms)
+    const now = Date.now();
+    if (user.sessionIssued && (now - user.sessionIssued > 172800000)) {
+      // Session is older than 48 hours, force re-authentication
+      return done(null, false);
+    }
     done(null, user);
   });
 }
