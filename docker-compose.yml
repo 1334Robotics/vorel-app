@@ -17,6 +17,10 @@ services:
       - DB_NAME=vorel
       - DB_USER=${DB_USER:-vorel}
       - DB_PASSWORD=${DB_PASSWORD}
+      - GITHUB_CALLBACK_URL=${GITHUB_CALLBACK_URL}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - AUTHORIZED_GITHUB_USERS=${AUTHORIZED_GITHUB_USERS}
     depends_on:
       - mariadb
     networks:
@@ -40,9 +44,6 @@ services:
       - MYSQL_DATABASE=vorel
       - MYSQL_USER=${DB_USER:-vorel}
       - MYSQL_PASSWORD=${DB_PASSWORD}
-      - GITHUB_CALLBACK_URL=${GITHUB_CALLBACK_URL}
-      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}    
     volumes:
       - mariadb_data:/var/lib/mysql
     networks:
