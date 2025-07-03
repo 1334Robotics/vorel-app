@@ -44,18 +44,54 @@ async function startServer() {
   
   console.log(`Session max age set to: ${Math.floor(sessionMaxAge / 1000 / 60)} minutes`);
   
-  app.use(session({
+  const sessionMiddleware = session({
     secret: encryptionKey,
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Reset session expiration on each request
     cookie: {
       secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
       httpOnly: true,
       maxAge: sessionMaxAge, // Expire with key rotation
       sameSite: 'lax' // Allow OAuth redirects while maintaining security
     },
-    name: 'vorel.sid' // Custom session name
-  }));
+    name: 'vorel.sid', // Custom session name
+    // Cleanup function to prevent memory leaks
+    genid: function() {
+      return require('crypto').randomBytes(16).toString('hex');
+    }
+  });
+  
+  app.use(sessionMiddleware);
+
+  // Periodic cleanup of expired sessions from memory store
+  setInterval(() => {
+    const store = sessionMiddleware.store;
+    if (store && typeof store.all === 'function') {
+      store.all((err, sessions) => {
+        if (err) return;
+        const now = Date.now();
+        let cleanedCount = 0;
+        
+        Object.keys(sessions || {}).forEach(sessionId => {
+          const session = sessions[sessionId];
+          if (session && session.cookie && session.cookie.expires) {
+            const expiry = new Date(session.cookie.expires).getTime();
+            if (now > expiry) {
+              store.destroy(sessionId, () => {});
+              cleanedCount++;
+            }
+          }
+        });
+        
+        if (cleanedCount > 0) {
+          console.log(`Cleaned up ${cleanedCount} expired sessions from memory`);
+        }
+      });
+    }
+  }, 15 * 60 * 1000); // Clean up every 15 minutes
+  
+  console.log('Session cleanup enabled - expired sessions will be purged every 15 minutes');
 
   // Initialize Passport
   app.use(passport.initialize());
