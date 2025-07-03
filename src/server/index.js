@@ -19,6 +19,10 @@ const { initializeAuth, checkAuthConfig, passport, updateAdminCache } = require(
 const { initializeEncryption, getNextRotationTime, KEY_ROTATION_INTERVAL } = require("./helpers/encryption");
 
 const app = express();
+
+// Trust proxy for proper HTTPS detection through Cloudflare/reverse proxies
+app.set('trust proxy', true);
+
 const Routes = require("./routes/apex");
 const apiRoutes = require("./routes/api");
 const embedRoutes = require("./routes/embed");
@@ -50,7 +54,7 @@ async function startServer() {
     saveUninitialized: false,
     rolling: true, // Reset session expiration on each request
     cookie: {
-      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+      secure: 'auto', // Auto-detect secure connections (works with proxies)
       httpOnly: true,
       maxAge: sessionMaxAge, // Expire with key rotation
       sameSite: 'lax' // Allow OAuth redirects while maintaining security
