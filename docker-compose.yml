@@ -39,7 +39,10 @@ services:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MYSQL_DATABASE=vorel
       - MYSQL_USER=${DB_USER:-vorel}
-      - MYSQL_PASSWORD=${DB_PASSWORD}    
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - GITHUB_CALLBACK_URL=${GITHUB_CALLBACK_URL}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}    
     volumes:
       - mariadb_data:/var/lib/mysql
     networks:
