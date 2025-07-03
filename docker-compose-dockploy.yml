@@ -15,6 +15,9 @@ services:
       - DB_NAME=vorel
       - DB_USER=${DB_USER:-vorel}
       - DB_PASSWORD=${DB_PASSWORD}
+      - GITHUB_CALLBACK_URL=${GITHUB_CALLBACK_URL}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
     depends_on:
       - mariadb
     networks:
