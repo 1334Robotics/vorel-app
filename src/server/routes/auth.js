@@ -66,7 +66,7 @@ router.post('/logout', requireAuth, (req, res) => {
       }
       
       console.log(`User ${username} logged out`);
-      res.clearCookie('connect.sid'); // Clear session cookie
+      res.clearCookie('vorel.sid'); // Clear session cookie with correct name
       res.redirect('/');
     });
   });
@@ -87,7 +87,7 @@ router.get('/logout', requireAuth, (req, res) => {
       }
       
       console.log(`User ${username} logged out`);
-      res.clearCookie('connect.sid'); // Clear session cookie
+      res.clearCookie('vorel.sid'); // Clear session cookie with correct name
       res.redirect('/');
     });
   });
