@@ -19,24 +19,37 @@ router.get('/login', (req, res) => {
 });
 
 // GitHub OAuth initiation
-router.get('/github', passport.authenticate('github', { 
-  scope: ['user:email'] 
-}));
+router.get('/github', (req, res, next) => {
+  // Check if GitHub strategy is available
+  if (!passport._strategy('github')) {
+    console.error('GitHub OAuth strategy not configured');
+    return res.redirect('/auth/login?error=oauth_not_configured');
+  }
+  
+  passport.authenticate('github', { 
+    scope: ['user:email'] 
+  })(req, res, next);
+});
 
 // GitHub OAuth callback
-router.get('/github/callback', 
+router.get('/github/callback', (req, res, next) => {
+  // Check if GitHub strategy is available
+  if (!passport._strategy('github')) {
+    console.error('GitHub OAuth strategy not configured for callback');
+    return res.redirect('/auth/login?error=oauth_not_configured');
+  }
+  
   passport.authenticate('github', { 
     failureRedirect: '/auth/login?error=auth_failed' 
-  }),
-  (req, res) => {
-    // Successful authentication
-    const returnTo = req.session.returnTo || '/admin';
-    delete req.session.returnTo;
-    
-    console.log(`User ${req.user.username} successfully authenticated`);
-    res.redirect(returnTo);
-  }
-);
+  })(req, res, next);
+}, (req, res) => {
+  // Successful authentication
+  const returnTo = req.session.returnTo || '/admin';
+  delete req.session.returnTo;
+  
+  console.log(`User ${req.user.username} successfully authenticated`);
+  res.redirect(returnTo);
+});
 
 // Logout
 router.post('/logout', requireAuth, (req, res) => {

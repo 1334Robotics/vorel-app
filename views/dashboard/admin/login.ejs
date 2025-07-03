@@ -127,6 +127,8 @@
       <div class="error-message">
         <% if (error === 'auth_failed') { %>
           Authentication failed. Please try again or contact an administrator if you believe you should have access.
+        <% } else if (error === 'oauth_not_configured') { %>
+          GitHub OAuth is not configured on this server. Please contact the administrator.
         <% } else { %>
           <%= error %>
         <% } %>

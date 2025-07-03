@@ -128,11 +128,38 @@ async function startServer() {
     res.sendFile(path.join(__dirname, "../../views/public/icon.avif"));
   });
 
+  // Check authentication configuration first
+  const authConfigured = checkAuthConfig();
+  if (authConfigured) {
+    initializeAuth();
+    console.log('Authentication system initialized');
+  } else {
+    console.log('Authentication system disabled - missing configuration');
+  }
+
   app.use("/", Routes);
   app.use("/api", apiRoutes);
   app.use("/embed", embedRoutes);
-  app.use("/auth", authRoutes);
-  app.use("/admin", adminRoutes);
+  
+  // Only register auth and admin routes if authentication is configured
+  if (authConfigured) {
+    app.use("/auth", authRoutes);
+    app.use("/admin", adminRoutes);
+  } else {
+    // Provide fallback routes when auth is disabled
+    app.use("/auth/*", (req, res) => {
+      res.status(503).json({ 
+        error: 'Authentication system unavailable',
+        message: 'GitHub OAuth is not configured on this server'
+      });
+    });
+    app.use("/admin/*", (req, res) => {
+      res.status(503).json({ 
+        error: 'Admin system unavailable',
+        message: 'Authentication is required for admin access'
+      });
+    });
+  }
 
   // Add 404 handler for all unmatched routes
   app.use((req, res) => {
@@ -144,18 +171,11 @@ async function startServer() {
   const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     
-    // Check authentication configuration
-    const authConfigured = checkAuthConfig();
+    // Initialize admin cache if auth is configured
     if (authConfigured) {
-      initializeAuth();
-      console.log('Authentication system initialized');
-      
-      // Initialize admin cache
       updateAdminCache().catch(error => {
         console.error('Failed to initialize admin cache:', error);
       });
-    } else {
-      console.log('Authentication system disabled - missing configuration');
     }
     
     // Initialize event cache, database, and changelog after server starts

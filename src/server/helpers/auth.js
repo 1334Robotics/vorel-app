@@ -189,16 +189,31 @@ function requireAuthAPI(req, res, next) {
 // Check if authentication is properly configured
 function checkAuthConfig() {
   const required = ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET'];
-  const missing = required.filter(key => !process.env[key]);
+  const missing = required.filter(key => !process.env[key] || process.env[key].trim() === '');
   
   if (missing.length > 0) {
     console.error('Missing required environment variables for GitHub OAuth:');
-    missing.forEach(key => console.error(`   - ${key}`));
+    missing.forEach(key => {
+      const value = process.env[key];
+      if (!value) {
+        console.error(`   - ${key}: not set`);
+      } else if (value.trim() === '') {
+        console.error(`   - ${key}: empty string`);
+      }
+    });
     console.error('   Please set these in your .env file or environment');
+    console.error('   Authentication routes will be disabled until configured');
     return false;
   }
   
+  // Additional validation
+  if (!process.env.GITHUB_CALLBACK_URL) {
+    console.warn('Warning: GITHUB_CALLBACK_URL not set, using default');
+  }
+  
   console.log('GitHub OAuth configuration found');
+  console.log(`   Client ID: ${process.env.GITHUB_CLIENT_ID.substring(0, 8)}...`);
+  console.log(`   Callback URL: ${process.env.GITHUB_CALLBACK_URL || 'not set'}`);
   return true;
 }
 
