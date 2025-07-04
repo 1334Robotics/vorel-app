@@ -65,56 +65,6 @@ router.get('/webhook-stats', (req, res) => {
   });
 });
 
-// Test webhook endpoint for debugging (simulates a Nexus webhook call)
-router.post('/webhook/test', async (req, res) => {
-  try {
-    console.log('Test webhook endpoint called');
-    
-    // Create a test webhook payload
-    const testPayload = {
-      eventKey: req.body.eventKey || '2025test',
-      dataAsOfTime: Date.now(),
-      match: {
-        label: 'Test Match 1',
-        status: 'Now queuing',
-        redTeams: ['1334', '2468', '3692'],
-        blueTeams: ['4816', '5840', '6164']
-      },
-      nowQueuing: req.body.nowQueuing || 'Test Match 1'
-    };
-    
-    console.log('Sending test webhook payload:', JSON.stringify(testPayload, null, 2));
-    
-    // Call our own webhook endpoint
-    const webhookResponse = await fetch(`http://localhost:${process.env.PORT || 3002}/api/webhook/nexus`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Nexus-Token': process.env.NEXUS_WEBHOOK_TOKEN || 'test-token'
-      },
-      body: JSON.stringify(testPayload)
-    });
-    
-    const webhookResult = await webhookResponse.json();
-    
-    res.json({
-      success: true,
-      testPayload,
-      webhookResponse: {
-        status: webhookResponse.status,
-        result: webhookResult
-      }
-    });
-    
-  } catch (error) {
-    console.error('Test webhook error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
 // SSE endpoint for real-time updates
 router.get('/updates-stream', async (req, res) => {
   const { eventKey: rawEventKey, teamKey } = req.query;
