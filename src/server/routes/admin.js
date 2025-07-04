@@ -261,6 +261,8 @@ router.get('/system-status', requireAuth, async (req, res) => {
       const response = await fetch(`http://localhost:${process.env.PORT || 3002}/api/webhook-stats`);
       if (response.ok) {
         webhookStats = await response.json();
+        // Add the isConfigured property here in the admin endpoint
+        webhookStats.isConfigured = !!process.env.NEXUS_WEBHOOK_TOKEN;
       }
     } catch (error) {
       console.warn('Could not fetch webhook stats:', error.message);
