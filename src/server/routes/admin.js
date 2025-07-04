@@ -255,13 +255,37 @@ router.get('/system-status', requireAuth, async (req, res) => {
       timestamp: Date.now()
     };
     
+    // Get webhook statistics from API routes
+    let webhookStats = null;
+    try {
+      const response = await fetch(`http://localhost:${process.env.PORT || 3002}/api/webhook-stats`);
+      if (response.ok) {
+        webhookStats = await response.json();
+      }
+    } catch (error) {
+      console.warn('Could not fetch webhook stats:', error.message);
+    }
+    
+    // Get SSE connection statistics
+    let sseStats = null;
+    try {
+      const response = await fetch(`http://localhost:${process.env.PORT || 3002}/api/sse-stats`);
+      if (response.ok) {
+        sseStats = await response.json();
+      }
+    } catch (error) {
+      console.warn('Could not fetch SSE stats:', error.message);
+    }
+    
     const status = {
       database: {
         connected: dbConnected,
         stats: dbStats
       },
       encryption: encryptionStatus,
-      server: serverStatus
+      server: serverStatus,
+      webhook: webhookStats,
+      sse: sseStats
     };
     
     res.json(status);

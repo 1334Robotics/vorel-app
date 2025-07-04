@@ -9,6 +9,15 @@ const crypto = require('crypto');
 const sseConnections = new Map();
 const lastDataHashes = new Map();
 
+// Webhook statistics tracking
+const webhookStats = {
+  totalReceived: 0,
+  lastReceived: null,
+  eventsReceived: new Map(), // eventKey -> count
+  connectionsTriggered: 0,
+  lastProcessingTime: 0
+};
+
 // Add debug logging to SSE endpoints
 console.log('SSE routes loaded');
 
@@ -42,6 +51,68 @@ router.get('/sse-stats', (req, res) => {
     connectionsByEvent,
     timestamp: Date.now()
   });
+});
+
+// Webhook statistics endpoint
+router.get('/webhook-stats', (req, res) => {
+  res.json({
+    totalReceived: webhookStats.totalReceived,
+    lastReceived: webhookStats.lastReceived ? new Date(webhookStats.lastReceived).toISOString() : null,
+    eventsReceived: Object.fromEntries(webhookStats.eventsReceived),
+    connectionsTriggered: webhookStats.connectionsTriggered,
+    lastProcessingTime: webhookStats.lastProcessingTime,
+    timestamp: Date.now()
+  });
+});
+
+// Test webhook endpoint for debugging (simulates a Nexus webhook call)
+router.post('/webhook/test', async (req, res) => {
+  try {
+    console.log('Test webhook endpoint called');
+    
+    // Create a test webhook payload
+    const testPayload = {
+      eventKey: req.body.eventKey || '2025test',
+      dataAsOfTime: Date.now(),
+      match: {
+        label: 'Test Match 1',
+        status: 'Now queuing',
+        redTeams: ['1334', '2468', '3692'],
+        blueTeams: ['4816', '5840', '6164']
+      },
+      nowQueuing: req.body.nowQueuing || 'Test Match 1'
+    };
+    
+    console.log('Sending test webhook payload:', JSON.stringify(testPayload, null, 2));
+    
+    // Call our own webhook endpoint
+    const webhookResponse = await fetch(`http://localhost:${process.env.PORT || 3002}/api/webhook/nexus`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Nexus-Token': process.env.NEXUS_WEBHOOK_TOKEN || 'test-token'
+      },
+      body: JSON.stringify(testPayload)
+    });
+    
+    const webhookResult = await webhookResponse.json();
+    
+    res.json({
+      success: true,
+      testPayload,
+      webhookResponse: {
+        status: webhookResponse.status,
+        result: webhookResult
+      }
+    });
+    
+  } catch (error) {
+    console.error('Test webhook error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
 // SSE endpoint for real-time updates
@@ -349,6 +420,153 @@ async function getDataHash(eventKey, teamKey) {
 
 // Start periodic update checks for SSE clients
 setInterval(checkAndNotifyUpdates, 5000); // Check every 5 seconds
+
+// Webhook endpoint for FRC Nexus real-time notifications
+router.post('/webhook/nexus', async (req, res) => {
+  const startTime = Date.now();
+  
+  try {
+    // Update webhook statistics
+    webhookStats.totalReceived++;
+    webhookStats.lastReceived = startTime;
+    
+    // Verify the webhook token if configured
+    const nexusToken = req.headers['nexus-token'];
+    const expectedToken = process.env.NEXUS_WEBHOOK_TOKEN;
+    
+    if (expectedToken && (!nexusToken || nexusToken !== expectedToken)) {
+      console.warn('Invalid or missing Nexus webhook token from IP:', req.ip);
+      return res.status(401).json({ error: 'Invalid webhook token' });
+    }
+    
+    if (!expectedToken) {
+      console.warn('NEXUS_WEBHOOK_TOKEN not configured - webhook verification disabled');
+    }
+
+    const { eventKey, dataAsOfTime, match, nowQueuing, matches } = req.body;
+    
+    if (!eventKey) {
+      console.error('Webhook payload missing eventKey:', req.body);
+      return res.status(400).json({ error: 'Missing eventKey in webhook payload' });
+    }
+
+    // Normalize eventKey to lowercase for consistent matching
+    const normalizedEventKey = eventKey.toLowerCase();
+
+    // Track events received
+    const currentCount = webhookStats.eventsReceived.get(normalizedEventKey) || 0;
+    webhookStats.eventsReceived.set(normalizedEventKey, currentCount + 1);
+
+    console.log(`📥 Received Nexus webhook for event: ${eventKey} at ${new Date(dataAsOfTime).toISOString()}`);
+    
+    // Log additional payload details for debugging
+    if (match) {
+      console.log(`  🏆 Match update: ${match.label} - ${match.status}`);
+      if (match.redTeams && match.blueTeams) {
+        console.log(`  🔴 Red: ${match.redTeams.join(', ')} vs 🔵 Blue: ${match.blueTeams.join(', ')}`);
+      }
+    }
+    if (nowQueuing !== undefined) {
+      console.log(`  ⏳ Now queuing: ${nowQueuing || 'None'}`);
+    }
+    if (matches && Array.isArray(matches)) {
+      console.log(`  📋 Total matches in payload: ${matches.length}`);
+    }
+
+    // Check if we have any active SSE connections watching this event
+    const watchedConnections = [];
+    for (const [connectionId, connection] of sseConnections.entries()) {
+      if (connection.eventKey === normalizedEventKey) {
+        watchedConnections.push({ connectionId, connection });
+      }
+    }
+
+    if (watchedConnections.length > 0) {
+      console.log(`⚡ Found ${watchedConnections.length} active connections watching event ${eventKey} - triggering instant update`);
+      
+      // Trigger immediate update for all connections watching this event
+      let successfulUpdates = 0;
+      const updatePromises = watchedConnections.map(async ({ connectionId, connection }) => {
+        try {
+          const { res, eventKey: connEventKey, teamKey } = connection;
+          
+          // Get current data hash
+          const currentHash = await getDataHash(connEventKey, teamKey);
+          const lastHash = lastDataHashes.get(connectionId);
+          
+          // Only send update if data has actually changed
+          if (currentHash && currentHash !== lastHash) {
+            lastDataHashes.set(connectionId, currentHash);
+            
+            try {
+              res.write(`data: ${JSON.stringify({ 
+                type: 'update', 
+                hash: currentHash,
+                timestamp: Date.now(),
+                source: 'webhook' // Indicate this update came from webhook
+              })}\n\n`);
+              console.log(`✅ Sent webhook-triggered update to connection: ${connectionId}`);
+              return true; // Success
+            } catch (writeError) {
+              // Handle connection errors
+              if (writeError.code === 'ECONNABORTED' || writeError.code === 'ECONNRESET' || 
+                  writeError.message.includes('aborted') || writeError.message.includes('closed')) {
+                console.log(`🔌 Webhook update connection naturally closed: ${connectionId}`);
+              } else {
+                console.error(`❌ Error writing webhook update to ${connectionId}:`, writeError);
+              }
+              // Remove the failed connection
+              sseConnections.delete(connectionId);
+              lastDataHashes.delete(connectionId);
+              return false;
+            }
+          } else {
+            console.log(`🔄 No data change detected for connection ${connectionId} - skipping update`);
+            return false;
+          }
+        } catch (error) {
+          console.error(`❌ Error processing webhook update for connection ${connectionId}:`, error);
+          // Remove failed connection
+          sseConnections.delete(connectionId);
+          lastDataHashes.delete(connectionId);
+          return false;
+        }
+      });
+      
+      // Wait for all updates to complete
+      const results = await Promise.all(updatePromises);
+      successfulUpdates = results.filter(Boolean).length;
+      
+      webhookStats.connectionsTriggered += successfulUpdates;
+      
+      if (successfulUpdates > 0) {
+        console.log(`🎯 Successfully triggered ${successfulUpdates}/${watchedConnections.length} connections`);
+      }
+    } else {
+      console.log(`👀 No active connections watching event ${eventKey} - webhook acknowledged but not processed`);
+    }
+
+    // Record processing time
+    webhookStats.lastProcessingTime = Date.now() - startTime;
+
+    // Return success response
+    res.status(200).json({ 
+      status: 'received', 
+      eventKey: normalizedEventKey,
+      connectionsNotified: watchedConnections.length,
+      processingTime: webhookStats.lastProcessingTime,
+      timestamp: Date.now()
+    });
+
+  } catch (error) {
+    console.error('💥 Error processing Nexus webhook:', error);
+    webhookStats.lastProcessingTime = Date.now() - startTime;
+    res.status(500).json({ 
+      error: 'Internal server error processing webhook',
+      processingTime: webhookStats.lastProcessingTime
+    });
+  }
+});
 
 // Data-check endpoint to detect changes
 router.get("/data-check", async (req, res) => {

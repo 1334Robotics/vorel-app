@@ -142,6 +142,101 @@
           </div>
         `;
         
+        // Webhook statistics
+        if (status.webhook) {
+          const isConfigured = process.env.NEXUS_WEBHOOK_TOKEN ? 'Configured' : 'Not Configured';
+          const configStatus = process.env.NEXUS_WEBHOOK_TOKEN ? 'success' : 'warning';
+          
+          statusHtml += `
+            <div class="notice-item">
+              <div class="notice-header">
+                <span class="notice-title">FRC Nexus Webhooks</span>
+                <span class="notice-type type-${configStatus}">${isConfigured}</span>
+              </div>
+              <div class="notice-content">
+                Total received: ${status.webhook.totalReceived}<br>
+                Last received: ${status.webhook.lastReceived ? new Date(status.webhook.lastReceived).toLocaleString() : 'Never'}<br>
+                Connections triggered: ${status.webhook.connectionsTriggered}<br>
+                Processing time: ${status.webhook.lastProcessingTime}ms<br>
+                ${!process.env.NEXUS_WEBHOOK_TOKEN ? '<br><strong>Warning:</strong> NEXUS_WEBHOOK_TOKEN not configured. Webhooks will work but without verification.' : ''}
+              </div>
+            </div>
+          `;
+          
+          // Show events received breakdown if there are any
+          if (Object.keys(status.webhook.eventsReceived).length > 0) {
+            const eventsBreakdown = Object.entries(status.webhook.eventsReceived)
+              .map(([eventKey, count]) => `${eventKey}: ${count}`)
+              .join('<br>');
+            
+            statusHtml += `
+              <div class="notice-item">
+                <div class="notice-header">
+                  <span class="notice-title">Webhook Events Received</span>
+                  <span class="notice-type type-info">Active</span>
+                </div>
+                <div class="notice-content">${eventsBreakdown}</div>
+              </div>
+            `;
+          }
+        } else {
+          statusHtml += `
+            <div class="notice-item">
+              <div class="notice-header">
+                <span class="notice-title">FRC Nexus Webhooks</span>
+                <span class="notice-type type-warning">Unavailable</span>
+              </div>
+              <div class="notice-content">Could not fetch webhook statistics</div>
+            </div>
+          `;
+        }
+        
+        // SSE Connection statistics
+        if (status.sse) {
+          statusHtml += `
+            <div class="notice-item">
+              <div class="notice-header">
+                <span class="notice-title">Real-time Connections (SSE)</span>
+                <span class="notice-type type-${status.sse.totalConnections > 0 ? 'success' : 'info'}">${status.sse.totalConnections} Active</span>
+              </div>
+              <div class="notice-content">
+                Total connections: ${status.sse.totalConnections}<br>
+                ${Object.keys(status.sse.connectionsByEvent).length > 0 ? 
+                  'Watched events: ' + Object.keys(status.sse.connectionsByEvent).length : 
+                  'No events currently being watched'
+                }
+              </div>
+            </div>
+          `;
+          
+          // Show connection breakdown if there are active connections
+          if (Object.keys(status.sse.connectionsByEvent).length > 0) {
+            const connectionsBreakdown = Object.entries(status.sse.connectionsByEvent)
+              .map(([eventTeam, data]) => `${eventTeam}: ${data.count} connection${data.count > 1 ? 's' : ''}`)
+              .join('<br>');
+            
+            statusHtml += `
+              <div class="notice-item">
+                <div class="notice-header">
+                  <span class="notice-title">Active Event Watchers</span>
+                  <span class="notice-type type-info">Live</span>
+                </div>
+                <div class="notice-content">${connectionsBreakdown}</div>
+              </div>
+            `;
+          }
+        } else {
+          statusHtml += `
+            <div class="notice-item">
+              <div class="notice-header">
+                <span class="notice-title">Real-time Connections (SSE)</span>
+                <span class="notice-type type-warning">Unavailable</span>
+              </div>
+              <div class="notice-content">Could not fetch SSE connection statistics</div>
+            </div>
+          `;
+        }
+        
         statusDiv.innerHTML = statusHtml;
         
         // Enable user management card if database is connected
