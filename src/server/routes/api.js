@@ -430,24 +430,42 @@ router.post('/webhook/nexus', async (req, res) => {
     webhookStats.totalReceived++;
     webhookStats.lastReceived = startTime;
     
-    // Verify the webhook token if configured
+    // Verify the webhook token from Nexus-Token header
     const nexusToken = req.headers['nexus-token'];
     const expectedToken = process.env.NEXUS_WEBHOOK_TOKEN;
     
-    if (expectedToken && (!nexusToken || nexusToken !== expectedToken)) {
-      console.warn('Invalid or missing Nexus webhook token from IP:', req.ip);
-      return res.status(401).json({ error: 'Invalid webhook token' });
+    if (expectedToken) {
+      if (!nexusToken || nexusToken !== expectedToken) {
+        console.warn('❌ Invalid or missing Nexus-Token header from IP:', req.ip);
+        console.warn('   Expected:', expectedToken);
+        console.warn('   Received:', nexusToken || 'undefined');
+        return res.status(401).json({ error: 'Invalid or missing Nexus-Token header' });
+      }
+      console.log('✅ Webhook token verified successfully');
+    } else {
+      console.warn('⚠️ NEXUS_WEBHOOK_TOKEN not configured - webhook verification disabled');
     }
-    
-    if (!expectedToken) {
-      console.warn('NEXUS_WEBHOOK_TOKEN not configured - webhook verification disabled');
+
+    // Check if this is just a validation request (empty body or only token)
+    if (!req.body || Object.keys(req.body).length === 0 || (req.body.token && !req.body.eventKey)) {
+      console.log('🔍 Received FRC Nexus webhook validation/test request');
+      return res.status(200).json({ 
+        status: 'validated',
+        message: 'Webhook endpoint ready for FRC Nexus',
+        timestamp: Date.now()
+      });
     }
 
     const { eventKey, dataAsOfTime, match, nowQueuing, matches } = req.body;
     
     if (!eventKey) {
-      console.error('Webhook payload missing eventKey:', req.body);
-      return res.status(400).json({ error: 'Missing eventKey in webhook payload' });
+      console.error('❌ Webhook payload missing eventKey. Received payload:', JSON.stringify(req.body, null, 2));
+      console.error('💡 Expected FRC Nexus webhook format with eventKey, dataAsOfTime, etc.');
+      return res.status(400).json({ 
+        error: 'Missing eventKey in webhook payload',
+        received: req.body,
+        expected: 'FRC Nexus webhook format with eventKey field'
+      });
     }
 
     // Normalize eventKey to lowercase for consistent matching
