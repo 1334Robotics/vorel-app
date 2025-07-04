@@ -10,6 +10,7 @@ services:
       - PORT=${Port:-3002}
       - Nexus_Api_Key=${Nexus_Api_Key}
       - TBA_API_Key=${TBA_API_Key}
+      - NEXUS_WEBHOOK_TOKEN=${NEXUS_WEBHOOK_TOKEN}
       - DB_HOST=mariadb
       - DB_PORT=3306
       - DB_NAME=vorel
@@ -22,7 +23,7 @@ services:
     depends_on:
       - mariadb
     networks:
-      - app-network
+      - vorel-app-network
       - dokploy-network
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:${Port:-3002}/api/health"]
@@ -46,7 +47,7 @@ services:
     volumes:
       - mariadb_data:/var/lib/mysql
     networks:
-      - app-network
+      - vorel-app-network
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 30s
@@ -67,7 +68,7 @@ volumes:
   mariadb_data:
 
 networks:
-  app-network:
+  vorel-app-network:
     driver: bridge
   dokploy-network:
     external: true
