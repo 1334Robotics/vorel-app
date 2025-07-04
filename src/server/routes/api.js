@@ -436,12 +436,12 @@ router.post('/webhook/nexus', async (req, res) => {
     
     if (expectedToken) {
       if (!nexusToken || nexusToken !== expectedToken) {
-        console.warn('❌ Invalid or missing Nexus-Token header from IP:', req.ip);
-        console.warn('   Expected:', expectedToken);
-        console.warn('   Received:', nexusToken || 'undefined');
+        console.warn('Invalid or missing Nexus-Token header from IP:', req.ip);
+        console.warn('Expected:', expectedToken);
+        console.warn('Received:', nexusToken || 'undefined');
         return res.status(401).json({ error: 'Invalid or missing Nexus-Token header' });
       }
-      console.log('✅ Webhook token verified successfully');
+      console.log('Webhook token verified successfully');
     } else {
       console.warn('⚠️ NEXUS_WEBHOOK_TOKEN not configured - webhook verification disabled');
     }
@@ -459,8 +459,8 @@ router.post('/webhook/nexus', async (req, res) => {
     const { eventKey, dataAsOfTime, match, nowQueuing, matches } = req.body;
     
     if (!eventKey) {
-      console.error('❌ Webhook payload missing eventKey. Received payload:', JSON.stringify(req.body, null, 2));
-      console.error('💡 Expected FRC Nexus webhook format with eventKey, dataAsOfTime, etc.');
+      console.error('Webhook payload missing eventKey. Received payload:', JSON.stringify(req.body, null, 2));
+      console.error('Expected FRC Nexus webhook format with eventKey, dataAsOfTime, etc.');
       return res.status(400).json({ 
         error: 'Missing eventKey in webhook payload',
         received: req.body,
@@ -475,20 +475,20 @@ router.post('/webhook/nexus', async (req, res) => {
     const currentCount = webhookStats.eventsReceived.get(normalizedEventKey) || 0;
     webhookStats.eventsReceived.set(normalizedEventKey, currentCount + 1);
 
-    console.log(`📥 Received Nexus webhook for event: ${eventKey} at ${new Date(dataAsOfTime).toISOString()}`);
+    console.log(`Received Nexus webhook for event: ${eventKey} at ${new Date(dataAsOfTime).toISOString()}`);
     
     // Log additional payload details for debugging
     if (match) {
-      console.log(`  🏆 Match update: ${match.label} - ${match.status}`);
+      console.log(`Match update: ${match.label} - ${match.status}`);
       if (match.redTeams && match.blueTeams) {
-        console.log(`  🔴 Red: ${match.redTeams.join(', ')} vs 🔵 Blue: ${match.blueTeams.join(', ')}`);
+        console.log(`Red: ${match.redTeams.join(', ')} vs Blue: ${match.blueTeams.join(', ')}`);
       }
     }
     if (nowQueuing !== undefined) {
-      console.log(`  ⏳ Now queuing: ${nowQueuing || 'None'}`);
+      console.log(`Now queuing: ${nowQueuing || 'None'}`);
     }
     if (matches && Array.isArray(matches)) {
-      console.log(`  📋 Total matches in payload: ${matches.length}`);
+      console.log(`Total matches in payload: ${matches.length}`);
     }
 
     // Check if we have any active SSE connections watching this event
@@ -500,7 +500,7 @@ router.post('/webhook/nexus', async (req, res) => {
     }
 
     if (watchedConnections.length > 0) {
-      console.log(`⚡ Found ${watchedConnections.length} active connections watching event ${eventKey} - triggering instant update`);
+      console.log(`Found ${watchedConnections.length} active connections watching event ${eventKey} - triggering instant update`);
       
       // Trigger immediate update for all connections watching this event
       let successfulUpdates = 0;
@@ -523,7 +523,7 @@ router.post('/webhook/nexus', async (req, res) => {
                 timestamp: Date.now(),
                 source: 'webhook' // Indicate this update came from webhook
               })}\n\n`);
-              console.log(`✅ Sent webhook-triggered update to connection: ${connectionId}`);
+              console.log(`Sent webhook-triggered update to connection: ${connectionId}`);
               return true; // Success
             } catch (writeError) {
               // Handle connection errors
