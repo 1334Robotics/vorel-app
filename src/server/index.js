@@ -44,16 +44,32 @@ app.use((req, res, next) => {
       if (err) {
         if (callback) return callback(err);
         return next(err);
-      }      // Remove HTML comments, CSS comment blocks, and JavaScript comments
-      let cleanedHtml = html
-        .replace(/<!--[\s\S]*?-->/g, '')
-        .replace(/\/\*[\s\S]*?\*\//g, '');
+      }
       
-      // Remove JavaScript single-line comments only within script tags
+      // Remove HTML comments
+      let cleanedHtml = html.replace(/<!--[\s\S]*?-->/g, '');
+      
+      // Extract JSON-LD blocks to protect them from comment stripping
+      const jsonLdBlocks = [];
+      cleanedHtml = cleanedHtml.replace(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g, (match) => {
+        jsonLdBlocks.push(match);
+        return `__JSON_LD_PLACEHOLDER_${jsonLdBlocks.length - 1}__`;
+      });
+      
+      // Remove CSS comment blocks and JavaScript comments from non-JSON-LD content
+      cleanedHtml = cleanedHtml.replace(/\/\*[\s\S]*?\*\//g, '');
+      
+      // Remove JavaScript single-line comments only within regular script tags
       cleanedHtml = cleanedHtml.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (match, scriptContent) => {
         const cleanedScript = scriptContent.replace(/\/\/.*$/gm, '');
         return match.replace(scriptContent, cleanedScript);
       });
+      
+      // Restore JSON-LD blocks
+      jsonLdBlocks.forEach((block, index) => {
+        cleanedHtml = cleanedHtml.replace(`__JSON_LD_PLACEHOLDER_${index}__`, block);
+      });
+      
       if (callback) return callback(null, cleanedHtml);
       res.send(cleanedHtml);
     });
