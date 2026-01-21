@@ -302,6 +302,23 @@
         } else if (data.type === 'update') {
           console.log('Received update via SSE');
           lastHeartbeatTime = Date.now(); // Reset heartbeat timer on any message
+          
+          // Show different indicators for webhook vs polling updates
+          if (data.source === 'webhook') {
+            console.log('⚡ Real-time webhook update received');
+            // Show a brief flash indicator for webhook updates
+            if (updateStatus) {
+              const originalBg = updateStatus.style.backgroundColor;
+              updateStatus.style.backgroundColor = '#4fc3f7';
+              updateStatus.style.transition = 'background-color 0.3s';
+              setTimeout(() => {
+                updateStatus.style.backgroundColor = originalBg;
+              }, 500);
+            }
+          } else {
+            console.log('🔄 Polling update received');
+          }
+          
           // Update hash display with the hash from SSE
           if (data.hash && hashDisplay) {
             currentDataHash = data.hash;

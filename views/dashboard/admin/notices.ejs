@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notice Management - Vorel</title>
+  <%- include('../../style/style-admin') %>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <nav style="margin-bottom: 8px;">
+          <a href="/admin" style="color: var(--text-secondary); text-decoration: none; font-size: 14px;">← Admin Dashboard</a>
+        </nav>
+        <h1>Notice Management</h1>
+      </div>
+      <% if (typeof user !== 'undefined' && user) { %>
+        <div class="user-info">
+          <% if (user.avatarUrl) { %>
+            <img src="<%= user.avatarUrl %>" alt="<%= user.username %>" class="user-avatar">
+          <% } %>
+          <span class="user-name"><%= user.displayName || user.username %></span>
+          <form method="post" action="/auth/logout" style="display: inline;">
+            <button type="submit" class="btn-logout">Logout</button>
+          </form>
+        </div>
+      <% } %>
+    </div>
+    
+    <div id="message"></div>
+    
+    <div class="notice-form">
+      <h2>Create New Notice</h2>
+      <form id="noticeForm">
+        <div class="form-group">
+          <label for="title">Title</label>
+          <input type="text" id="title" name="title" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="content">Content (HTML allowed)</label>
+          <textarea id="content" name="content" required placeholder="Enter notice content. HTML tags like &lt;a&gt; and &lt;strong&gt; are allowed."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="type">Type</label>
+          <select id="type" name="type">
+            <option value="info">Info</option>
+            <option value="warning">Warning</option>
+            <option value="success">Success</option>
+            <option value="danger">Danger</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="priority">Priority (higher numbers appear first)</label>
+          <input type="number" id="priority" name="priority" value="0">
+        </div>
+        
+        <div class="form-group">
+          <label for="expires_at">Expires At (optional)</label>
+          <input type="datetime-local" id="expires_at" name="expires_at">
+        </div>
+        
+        <button type="submit">Create Notice</button>
+        <button type="button" onclick="clearForm()">Clear</button>
+      </form>
+    </div>
+    
+    <div class="notices-list">
+      <h2>Existing Notices</h2>
+      <div id="noticesList">Loading...</div>
+    </div>
+  </div>
+
+  <script>
+    let editingNoticeId = null;
+
+    async function showMessage(text, type = 'success') {
+      const messageDiv = document.getElementById('message');
+      messageDiv.innerHTML = `<div class="message ${type}">${text}</div>`;
+      setTimeout(() => messageDiv.innerHTML = '', 5000);
+    }
+
+    async function handleAPIError(response, defaultMessage) {
+      if (response.status === 401) {
+        showMessage('Session expired. Please log in again.', 'error');
+        setTimeout(() => {
+          window.location.href = '/auth/login?returnTo=' + encodeURIComponent(window.location.pathname);
+        }, 2000);
+        return true;
+      }
+      
+      try {
+        const result = await response.json();
+        showMessage(result.error || defaultMessage, 'error');
+      } catch (e) {
+        // If we can't parse the JSON, use the default message
+        showMessage(defaultMessage, 'error');
+      }
+      return false;
+    }
+
+    async function loadNotices() {
+      try {
+        const response = await fetch('/api/notices');
+        const notices = await response.json();
+        
+        const noticesListDiv = document.getElementById('noticesList');
+        
+        if (notices.length === 0) {
+          noticesListDiv.innerHTML = '<p>No notices found.</p>';
+          return;
+        }
+        
+        noticesListDiv.innerHTML = notices.map(notice => `
+          <div class="notice-item">
+            <div class="notice-header">
+              <span class="notice-title">${notice.title}</span>
+              <span class="notice-type type-${notice.type}">${notice.type}</span>
+            </div>
+            <div class="notice-content">${notice.content}</div>
+            <div class="notice-actions">
+              <button class="btn-info" onclick="editNotice(${notice.id})">Edit</button>
+              <button class="btn-warning" onclick="deactivateNotice(${notice.id})">Deactivate</button>
+              <button class="btn-error" onclick="deleteNotice(${notice.id})">Delete</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading notices:', error);
+        showMessage('Failed to load notices', 'error');
+      }
+    }
+
+    async function createOrUpdateNotice(formData) {
+      try {
+        const url = editingNoticeId ? `/api/notices/${editingNoticeId}` : '/api/notices';
+        const method = editingNoticeId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          showMessage(editingNoticeId ? 'Notice updated successfully' : 'Notice created successfully');
+          clearForm();
+          loadNotices();
+        } else {
+          await handleAPIError(response, 'Failed to save notice');
+        }
+      } catch (error) {
+        console.error('Error saving notice:', error);
+        showMessage('Failed to save notice: ' + error.message, 'error');
+      }
+    }
+
+    async function editNotice(id) {
+      try {
+        const response = await fetch('/api/notices');
+        const notices = await response.json();
+        const notice = notices.find(n => n.id === id);
+        
+        if (notice) {
+          document.getElementById('title').value = notice.title;
+          document.getElementById('content').value = notice.content;
+          document.getElementById('type').value = notice.type;
+          document.getElementById('priority').value = notice.priority;
+          
+          if (notice.expires_at) {
+            const expireDate = new Date(notice.expires_at);
+            document.getElementById('expires_at').value = expireDate.toISOString().slice(0, 16);
+          }
+          
+          editingNoticeId = id;
+          document.querySelector('button[type="submit"]').textContent = 'Update Notice';
+        }
+      } catch (error) {
+        console.error('Error loading notice for edit:', error);
+        showMessage('Failed to load notice for editing', 'error');
+      }
+    }
+
+    async function deactivateNotice(id) {
+      if (!confirm('Are you sure you want to deactivate this notice?')) return;
+      
+      try {
+        const response = await fetch(`/api/notices/${id}/deactivate`, { method: 'POST' });
+        const result = await response.json();
+        
+        if (response.ok) {
+          showMessage('Notice deactivated successfully');
+          loadNotices();
+        } else {
+          showMessage(result.error || 'Failed to deactivate notice', 'error');
+        }
+      } catch (error) {
+        console.error('Error deactivating notice:', error);
+        showMessage('Failed to deactivate notice', 'error');
+      }
+    }
+
+    async function deleteNotice(id) {
+      if (!confirm('Are you sure you want to permanently delete this notice?')) return;
+      
+      try {
+        const response = await fetch(`/api/notices/${id}`, { method: 'DELETE' });
+        const result = await response.json();
+        
+        if (response.ok) {
+          showMessage('Notice deleted successfully');
+          loadNotices();
+        } else {
+          showMessage(result.error || 'Failed to delete notice', 'error');
+        }
+      } catch (error) {
+        console.error('Error deleting notice:', error);
+        showMessage('Failed to delete notice', 'error');
+      }
+    }
+
+    function clearForm() {
+      document.getElementById('noticeForm').reset();
+      editingNoticeId = null;
+      document.querySelector('button[type="submit"]').textContent = 'Create Notice';
+    }
+
+    document.getElementById('noticeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = {
+        title: document.getElementById('title').value,
+        content: document.getElementById('content').value,
+        type: document.getElementById('type').value,
+        priority: parseInt(document.getElementById('priority').value) || 0,
+        expires_at: document.getElementById('expires_at').value || null
+      };
+      
+      await createOrUpdateNotice(formData);
+    });
+
+    // Load notices on page load
+    loadNotices();
+  </script>
+</body>
+</html>

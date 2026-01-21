@@ -25,6 +25,7 @@ async function testConnection() {
     return true;
   } catch (err) {
     console.error('MariaDB connection failed:', err.message);
+    console.log('Application will continue without database functionality');
     return false;
   } finally {
     if (conn) conn.release();
@@ -252,11 +253,23 @@ async function initializeDB() {
   const connected = await testConnection();
   
   if (connected) {
-    console.log('Creating database schema if not exists...');
-    await createSchema();
-    
-    const stats = await getDBStats();
-    console.log(`Database stats: ${stats.total_events} events across ${stats.years_count} years`);
+    try {
+      console.log('Creating database schema if not exists...');
+      await createSchema();
+      
+      // Initialize admin users after schema is created
+      await initializeAdminUsers();
+      
+      const stats = await getDBStats();
+      console.log(`Database stats: ${stats.total_events} events across ${stats.years_count} years`);
+      console.log('Database initialized successfully');
+    } catch (error) {
+      console.error('Database schema creation failed:', error.message);
+      console.log('Database will operate in limited mode');
+      return false;
+    }
+  } else {
+    console.log('Database unavailable - application will run without database features');
   }
   
   return connected;
@@ -352,6 +365,56 @@ async function createSchema() {
       WHERE year >= 2025
       ORDER BY year DESC, start_date
     `);
+    
+    console.log('Creating notices table...');
+    
+    // Create notices table for managing site-wide notices
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS notices (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        content TEXT NOT NULL,
+        type ENUM('info', 'warning', 'success', 'danger') DEFAULT 'info',
+        is_active BOOLEAN DEFAULT true,
+        priority INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        starts_at TIMESTAMP NULL,
+        expires_at TIMESTAMP NULL,
+        
+        -- Indexes for fast querying
+        INDEX idx_active (is_active),
+        INDEX idx_priority (priority),
+        INDEX idx_date_range (starts_at, expires_at),
+        INDEX idx_active_priority (is_active, priority DESC)
+      )
+    `);
+
+    console.log('Creating admin users table...');
+    
+    // Create admin users table for managing authorized administrators
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        github_username VARCHAR(255) NOT NULL UNIQUE,
+        github_id VARCHAR(20) UNIQUE,
+        role ENUM('admin', 'moderator') DEFAULT 'admin',
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_username (github_username),
+        INDEX idx_active (is_active),
+        INDEX idx_role (role)
+      )
+    `);
+    
+    // Migrate existing table to allow null github_id
+    try {
+      await conn.query('ALTER TABLE admin_users MODIFY github_id VARCHAR(20) UNIQUE');
+      console.log('Admin users table schema updated to allow null github_id');
+    } catch (err) {
+      // Column might already be nullable, ignore error
+    }
     
     console.log('Database schema created successfully!');
     
@@ -569,6 +632,136 @@ async function clearOldTeamCaches(hoursOld = 24) {
   }
 }
 
+// Notice Management Functions
+
+// Get active notices for display
+async function getActiveNotices() {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    const currentTime = new Date();
+    
+    const sql = `
+      SELECT id, title, content, type, priority, created_at, starts_at, expires_at
+      FROM notices 
+      WHERE is_active = true
+        AND (starts_at IS NULL OR starts_at <= ?)
+        AND (expires_at IS NULL OR expires_at >= ?)
+      ORDER BY priority DESC, created_at DESC
+    `;
+    
+    const notices = await conn.query(sql, [currentTime, currentTime]);
+    return notices;
+    
+  } catch (err) {
+    console.error('Error getting active notices:', err.message);
+    return [];
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+// Create a new notice
+async function createNotice(noticeData) {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    const sql = `
+      INSERT INTO notices (title, content, type, is_active, priority, starts_at, expires_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    const params = [
+      noticeData.title,
+      noticeData.content,
+      noticeData.type || 'info',
+      noticeData.is_active !== undefined ? noticeData.is_active : true,
+      noticeData.priority || 0,
+      noticeData.starts_at || null,
+      noticeData.expires_at || null
+    ];
+    
+    const result = await conn.query(sql, params);
+    return result.insertId;
+    
+  } catch (err) {
+    console.error('Error creating notice:', err.message);
+    throw err;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+// Update an existing notice
+async function updateNotice(id, noticeData) {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    const sql = `
+      UPDATE notices 
+      SET title = ?, content = ?, type = ?, is_active = ?, priority = ?, starts_at = ?, expires_at = ?
+      WHERE id = ?
+    `;
+    
+    const params = [
+      noticeData.title,
+      noticeData.content,
+      noticeData.type || 'info',
+      noticeData.is_active !== undefined ? noticeData.is_active : true,
+      noticeData.priority || 0,
+      noticeData.starts_at || null,
+      noticeData.expires_at || null,
+      id
+    ];
+    
+    const result = await conn.query(sql, params);
+    return result.affectedRows > 0;
+    
+  } catch (err) {
+    console.error('Error updating notice:', err.message);
+    throw err;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+// Delete a notice
+async function deleteNotice(id) {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    const result = await conn.query('DELETE FROM notices WHERE id = ?', [id]);
+    return result.affectedRows > 0;
+    
+  } catch (err) {
+    console.error('Error deleting notice:', err.message);
+    throw err;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+// Deactivate a notice (soft delete)
+async function deactivateNotice(id) {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    const result = await conn.query('UPDATE notices SET is_active = false WHERE id = ?', [id]);
+    return result.affectedRows > 0;
+    
+  } catch (err) {
+    console.error('Error deactivating notice:', err.message);
+    throw err;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
 // Graceful shutdown
 async function closeDB() {
   try {
@@ -580,6 +773,241 @@ async function closeDB() {
 }
 
 // Note: Shutdown handlers are now managed by the main server file
+
+// Helper function to check if a user is defined in environment variables
+function isEnvironmentUser(githubUsername) {
+  const envUsers = (process.env.AUTHORIZED_GITHUB_USERS || '').split(',').map(u => u.trim().toLowerCase()).filter(u => u);
+  return envUsers.includes(githubUsername.toLowerCase());
+}
+
+// Helper function to get all environment usernames
+function getEnvironmentUsers() {
+  return (process.env.AUTHORIZED_GITHUB_USERS || '').split(',').map(u => u.trim().toLowerCase()).filter(u => u);
+}
+
+// Admin User Management Functions
+
+// Check if a GitHub user is an authorized admin
+async function isAuthorizedAdmin(githubUsername, githubId) {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    const result = await conn.query(
+      'SELECT * FROM admin_users WHERE (github_username = ? OR github_id = ?) AND is_active = true',
+      [githubUsername.toLowerCase(), githubId]
+    );
+    
+    return result.length > 0 ? result[0] : null;
+  } catch (err) {
+    console.error('Error checking admin authorization:', err);
+    return null;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+// Add or update an admin user
+async function upsertAdminUser(userData) {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    const result = await conn.query(`
+      INSERT INTO admin_users (github_username, github_id, display_name, email, avatar_url, last_login)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON DUPLICATE KEY UPDATE
+        display_name = VALUES(display_name),
+        email = VALUES(email),
+        avatar_url = VALUES(avatar_url),
+        last_login = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+    `, [
+      userData.username.toLowerCase(),
+      userData.id,
+      userData.displayName,
+      userData.email,
+      userData.avatarUrl
+    ]);
+    
+    // Refresh admin cache after database change
+    refreshAdminCache();
+    
+    return result.affectedRows > 0;
+  } catch (err) {
+    console.error('Error upserting admin user:', err);
+    return false;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+// Add or update admin user for management purposes
+async function addAdminUser(githubUsername, githubId, role = 'admin', isActive = true) {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    const result = await conn.query(`
+      INSERT INTO admin_users (github_username, github_id, role, is_active)
+      VALUES (?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        role = VALUES(role),
+        is_active = VALUES(is_active),
+        updated_at = CURRENT_TIMESTAMP
+    `, [
+      githubUsername.toLowerCase(),
+      githubId,
+      role,
+      isActive
+    ]);
+    
+    // Refresh admin cache after database change
+    refreshAdminCache();
+    
+    return result.affectedRows > 0;
+  } catch (err) {
+    console.error('Error adding admin user:', err);
+    return false;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+// Remove admin user with environment protection
+async function removeAdminUser(githubUsername) {
+  // Protect environment users from removal
+  if (isEnvironmentUser(githubUsername)) {
+    throw new Error('Cannot remove environment-defined admin users');
+  }
+  
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    const result = await conn.query(
+      'DELETE FROM admin_users WHERE github_username = ?',
+      [githubUsername.toLowerCase()]
+    );
+    
+    // Refresh admin cache after database change
+    refreshAdminCache();
+    
+    return result.affectedRows > 0;
+  } catch (err) {
+    console.error('Error removing admin user:', err);
+    throw err;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+// Toggle admin user active status with environment protection
+async function toggleAdminUser(githubUsername, isActive) {
+  // Protect environment users from being deactivated
+  if (isEnvironmentUser(githubUsername) && !isActive) {
+    throw new Error('Cannot deactivate environment-defined admin users');
+  }
+  
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    const result = await conn.query(
+      'UPDATE admin_users SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE github_username = ?',
+      [isActive, githubUsername.toLowerCase()]
+    );
+    
+    // Refresh admin cache after database change
+    refreshAdminCache();
+    
+    return result.affectedRows > 0;
+  } catch (err) {
+    console.error('Error toggling admin user:', err);
+    throw err;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+// Initialize admin users from environment variables
+async function initializeAdminUsers() {
+  const envUsers = (process.env.AUTHORIZED_GITHUB_USERS || '').split(',').map(u => u.trim()).filter(u => u);
+  
+  if (envUsers.length === 0) {
+    console.log('No admin users specified in environment variables');
+    return;
+  }
+  
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    for (const username of envUsers) {
+      await conn.query(`
+        INSERT IGNORE INTO admin_users (github_username, github_id, role, is_active)
+        VALUES (?, ?, 'admin', true)
+      `, [username.toLowerCase(), 'env_' + username.toLowerCase()]);
+    }
+    
+    console.log(`Initialized ${envUsers.length} admin users from environment variables`);
+  } catch (err) {
+    console.error('Error initializing admin users:', err);
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+// Function to refresh admin cache after database changes
+function refreshAdminCache() {
+  try {
+    const { updateAdminCache, resetDatabaseModeCheck } = require('./auth');
+    resetDatabaseModeCheck(); // Reset database mode check to re-detect
+    updateAdminCache().catch(error => {
+      console.error('Failed to refresh admin cache:', error);
+    });
+  } catch (error) {
+    // Auth module may not be available during initialization
+  }
+}
+
+// Get all admin users
+async function getAllAdminUsers() {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    const result = await conn.query(
+      'SELECT github_username, display_name, email, role, is_active, created_at, last_login FROM admin_users ORDER BY created_at ASC'
+    );
+    
+    return result;
+  } catch (err) {
+    console.error('Error getting admin users:', err);
+    return [];
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+async function getAllAdminUsers() {
+  if (!pool) {
+    console.log('Database not available, using environment admin list');
+    const envAdmins = process.env.ADMIN_GITHUB_USERS ? process.env.ADMIN_GITHUB_USERS.split(',') : [];
+    return envAdmins.map(username => ({ github_username: username, role: 'admin', source: 'env' }));
+  }
+
+  try {
+    const connection = await pool.getConnection();
+    const query = 'SELECT * FROM admin_users WHERE is_active = 1 ORDER BY role, github_username';
+    const rows = await connection.query(query);
+    connection.release();
+    return rows;
+  } catch (error) {
+    console.error('Error fetching admin users:', error);
+    return [];
+  }
+}
 
 module.exports = {
   pool,
@@ -595,5 +1023,22 @@ module.exports = {
   cacheTeamEventsDB,
   getTeamEventsDB,
   clearAllTeamCaches,
-  clearOldTeamCaches
+  clearOldTeamCaches,
+  // Notice functions
+  getActiveNotices,
+  createNotice,
+  updateNotice,
+  deleteNotice,
+  deactivateNotice,
+  // Admin user functions
+  isAuthorizedAdmin,
+  upsertAdminUser,
+  addAdminUser,
+  removeAdminUser,
+  toggleAdminUser,
+  initializeAdminUsers,
+  getAllAdminUsers,
+  refreshAdminCache,
+  isEnvironmentUser,
+  getEnvironmentUsers
 };
