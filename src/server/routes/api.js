@@ -2,11 +2,21 @@ const express = require('express');
 const router = express.Router();
 const { fetchEventDetails, fetchTeamStatusAtEvent, fetchEventMatchResults, searchTBAEventsEnhanced, getTeamEventsWithCache } = require('../helpers/api');
 const { extractRPRelevantData } = require('../helpers/matches');
+const { requireAuthAPI } = require('../helpers/auth');
 const crypto = require('crypto');
 
 // SSE connections store with data hashes
 const sseConnections = new Map();
 const lastDataHashes = new Map();
+
+// Webhook statistics tracking
+const webhookStats = {
+  totalReceived: 0,
+  lastReceived: null,
+  eventsReceived: new Map(), // eventKey -> count
+  connectionsTriggered: 0,
+  lastProcessingTime: 0
+};
 
 // Add debug logging to SSE endpoints
 console.log('SSE routes loaded');
@@ -39,6 +49,18 @@ router.get('/sse-stats', (req, res) => {
   res.json({
     totalConnections,
     connectionsByEvent,
+    timestamp: Date.now()
+  });
+});
+
+// Webhook statistics endpoint
+router.get('/webhook-stats', (req, res) => {
+  res.json({
+    totalReceived: webhookStats.totalReceived,
+    lastReceived: webhookStats.lastReceived ? new Date(webhookStats.lastReceived).toISOString() : null,
+    eventsReceived: Object.fromEntries(webhookStats.eventsReceived),
+    connectionsTriggered: webhookStats.connectionsTriggered,
+    lastProcessingTime: webhookStats.lastProcessingTime,
     timestamp: Date.now()
   });
 });
@@ -349,6 +371,171 @@ async function getDataHash(eventKey, teamKey) {
 // Start periodic update checks for SSE clients
 setInterval(checkAndNotifyUpdates, 5000); // Check every 5 seconds
 
+// Webhook endpoint for FRC Nexus real-time notifications
+router.post('/webhook/nexus', async (req, res) => {
+  const startTime = Date.now();
+  
+  try {
+    // Update webhook statistics
+    webhookStats.totalReceived++;
+    webhookStats.lastReceived = startTime;
+    
+    // Verify the webhook token from Nexus-Token header
+    const nexusToken = req.headers['nexus-token'];
+    const expectedToken = process.env.NEXUS_WEBHOOK_TOKEN;
+    
+    if (expectedToken) {
+      if (!nexusToken || nexusToken !== expectedToken) {
+        console.warn('Invalid or missing Nexus-Token header from IP:', req.ip);
+        console.warn('Expected:', expectedToken);
+        console.warn('Received:', nexusToken || 'undefined');
+        return res.status(401).json({ error: 'Invalid or missing Nexus-Token header' });
+      }
+      console.log('Webhook token verified successfully');
+    } else {
+      console.warn('⚠️ NEXUS_WEBHOOK_TOKEN not configured - webhook verification disabled');
+    }
+
+    // Check if this is just a validation request (empty body or only token)
+    if (!req.body || Object.keys(req.body).length === 0 || (req.body.token && !req.body.eventKey)) {
+      console.log('🔍 Received FRC Nexus webhook validation/test request');
+      return res.status(200).json({ 
+        status: 'validated',
+        message: 'Webhook endpoint ready for FRC Nexus',
+        timestamp: Date.now()
+      });
+    }
+
+    const { eventKey, dataAsOfTime, match, nowQueuing, matches } = req.body;
+    
+    if (!eventKey) {
+      console.error('Webhook payload missing eventKey. Received payload:', JSON.stringify(req.body, null, 2));
+      console.error('Expected FRC Nexus webhook format with eventKey, dataAsOfTime, etc.');
+      return res.status(400).json({ 
+        error: 'Missing eventKey in webhook payload',
+        received: req.body,
+        expected: 'FRC Nexus webhook format with eventKey field'
+      });
+    }
+
+    // Normalize eventKey to lowercase for consistent matching
+    const normalizedEventKey = eventKey.toLowerCase();
+
+    // Track events received
+    const currentCount = webhookStats.eventsReceived.get(normalizedEventKey) || 0;
+    webhookStats.eventsReceived.set(normalizedEventKey, currentCount + 1);
+
+    console.log(`Received Nexus webhook for event: ${eventKey} at ${new Date(dataAsOfTime).toISOString()}`);
+    
+    // Log additional payload details for debugging
+    if (match) {
+      console.log(`Match update: ${match.label} - ${match.status}`);
+      if (match.redTeams && match.blueTeams) {
+        console.log(`Red: ${match.redTeams.join(', ')} vs Blue: ${match.blueTeams.join(', ')}`);
+      }
+    }
+    if (nowQueuing !== undefined) {
+      console.log(`Now queuing: ${nowQueuing || 'None'}`);
+    }
+    if (matches && Array.isArray(matches)) {
+      console.log(`Total matches in payload: ${matches.length}`);
+    }
+
+    // Check if we have any active SSE connections watching this event
+    const watchedConnections = [];
+    for (const [connectionId, connection] of sseConnections.entries()) {
+      if (connection.eventKey === normalizedEventKey) {
+        watchedConnections.push({ connectionId, connection });
+      }
+    }
+
+    if (watchedConnections.length > 0) {
+      console.log(`Found ${watchedConnections.length} active connections watching event ${eventKey} - triggering instant update`);
+      
+      // Trigger immediate update for all connections watching this event
+      let successfulUpdates = 0;
+      const updatePromises = watchedConnections.map(async ({ connectionId, connection }) => {
+        try {
+          const { res, eventKey: connEventKey, teamKey } = connection;
+          
+          // Get current data hash
+          const currentHash = await getDataHash(connEventKey, teamKey);
+          const lastHash = lastDataHashes.get(connectionId);
+          
+          // Only send update if data has actually changed
+          if (currentHash && currentHash !== lastHash) {
+            lastDataHashes.set(connectionId, currentHash);
+            
+            try {
+              res.write(`data: ${JSON.stringify({ 
+                type: 'update', 
+                hash: currentHash,
+                timestamp: Date.now(),
+                source: 'webhook' // Indicate this update came from webhook
+              })}\n\n`);
+              console.log(`Sent webhook-triggered update to connection: ${connectionId}`);
+              return true; // Success
+            } catch (writeError) {
+              // Handle connection errors
+              if (writeError.code === 'ECONNABORTED' || writeError.code === 'ECONNRESET' || 
+                  writeError.message.includes('aborted') || writeError.message.includes('closed')) {
+                console.log(`🔌 Webhook update connection naturally closed: ${connectionId}`);
+              } else {
+                console.error(`❌ Error writing webhook update to ${connectionId}:`, writeError);
+              }
+              // Remove the failed connection
+              sseConnections.delete(connectionId);
+              lastDataHashes.delete(connectionId);
+              return false;
+            }
+          } else {
+            console.log(`🔄 No data change detected for connection ${connectionId} - skipping update`);
+            return false;
+          }
+        } catch (error) {
+          console.error(`❌ Error processing webhook update for connection ${connectionId}:`, error);
+          // Remove failed connection
+          sseConnections.delete(connectionId);
+          lastDataHashes.delete(connectionId);
+          return false;
+        }
+      });
+      
+      // Wait for all updates to complete
+      const results = await Promise.all(updatePromises);
+      successfulUpdates = results.filter(Boolean).length;
+      
+      webhookStats.connectionsTriggered += successfulUpdates;
+      
+      if (successfulUpdates > 0) {
+        console.log(`🎯 Successfully triggered ${successfulUpdates}/${watchedConnections.length} connections`);
+      }
+    } else {
+      console.log(`👀 No active connections watching event ${eventKey} - webhook acknowledged but not processed`);
+    }
+
+    // Record processing time
+    webhookStats.lastProcessingTime = Date.now() - startTime;
+
+    // Return success response
+    res.status(200).json({ 
+      status: 'received', 
+      eventKey: normalizedEventKey,
+      connectionsNotified: watchedConnections.length,
+      processingTime: webhookStats.lastProcessingTime,
+      timestamp: Date.now()
+    });
+
+  } catch (error) {
+    console.error('💥 Error processing Nexus webhook:', error);
+    webhookStats.lastProcessingTime = Date.now() - startTime;
+    res.status(500).json({ 
+      error: 'Internal server error processing webhook',
+      processingTime: webhookStats.lastProcessingTime
+    });
+  }
+});
+
 // Data-check endpoint to detect changes
 router.get("/data-check", async (req, res) => {
   let { eventKey: rawEventKey, teamKey, lastUpdate } = req.query;
@@ -636,6 +823,121 @@ router.get('/db-status', async (req, res) => {
       error: 'Failed to get database status',
       connected: false 
     });
+  }
+});
+
+// Notice Management API Endpoints
+
+// GET all active notices (for public display)
+router.get('/notices', async (req, res) => {
+  try {
+    const { getActiveNotices } = require('../helpers/database');
+    const notices = await getActiveNotices();
+    res.json(notices);
+  } catch (error) {
+    console.error('Error fetching notices:', error);
+    res.status(500).json({ error: 'Failed to fetch notices' });
+  }
+});
+
+// POST create a new notice (admin endpoint - requires auth)
+router.post('/notices', requireAuthAPI, async (req, res) => {
+  try {
+    const { createNotice } = require('../helpers/database');
+    const { title, content, type, is_active, priority, starts_at, expires_at } = req.body;
+    
+    if (!title || !content) {
+      return res.status(400).json({ error: 'Title and content are required' });
+    }
+    
+    const noticeData = {
+      title,
+      content,
+      type: type || 'info',
+      is_active: is_active !== undefined ? is_active : true,
+      priority: priority || 0,
+      starts_at: starts_at || null,
+      expires_at: expires_at || null
+    };
+    
+    const noticeId = await createNotice(noticeData);
+    console.log(`Notice created by ${req.user.username}: "${title}"`);
+    res.status(201).json({ id: Number(noticeId), message: 'Notice created successfully' });
+  } catch (error) {
+    console.error('Error creating notice:', error);
+    res.status(500).json({ error: 'Failed to create notice' });
+  }
+});
+
+// PUT update an existing notice (admin endpoint - requires auth)
+router.put('/notices/:id', requireAuthAPI, async (req, res) => {
+  try {
+    const { updateNotice } = require('../helpers/database');
+    const { id } = req.params;
+    const { title, content, type, is_active, priority, starts_at, expires_at } = req.body;
+    
+    if (!title || !content) {
+      return res.status(400).json({ error: 'Title and content are required' });
+    }
+    
+    const noticeData = {
+      title,
+      content,
+      type: type || 'info',
+      is_active: is_active !== undefined ? is_active : true,
+      priority: priority || 0,
+      starts_at: starts_at || null,
+      expires_at: expires_at || null
+    };
+    
+    const updated = await updateNotice(id, noticeData);
+    if (updated) {
+      console.log(`Notice ${id} updated by ${req.user.username}: "${title}"`);
+      res.json({ message: 'Notice updated successfully' });
+    } else {
+      res.status(404).json({ error: 'Notice not found' });
+    }
+  } catch (error) {
+    console.error('Error updating notice:', error);
+    res.status(500).json({ error: 'Failed to update notice' });
+  }
+});
+
+// DELETE a notice (admin endpoint - requires auth)
+router.delete('/notices/:id', requireAuthAPI, async (req, res) => {
+  try {
+    const { deleteNotice } = require('../helpers/database');
+    const { id } = req.params;
+    
+    const deleted = await deleteNotice(id);
+    if (deleted) {
+      console.log(`Notice ${id} deleted by ${req.user.username}`);
+      res.json({ message: 'Notice deleted successfully' });
+    } else {
+      res.status(404).json({ error: 'Notice not found' });
+    }
+  } catch (error) {
+    console.error('Error deleting notice:', error);
+    res.status(500).json({ error: 'Failed to delete notice' });
+  }
+});
+
+// POST deactivate a notice (soft delete - requires auth)
+router.post('/notices/:id/deactivate', requireAuthAPI, async (req, res) => {
+  try {
+    const { deactivateNotice } = require('../helpers/database');
+    const { id } = req.params;
+    
+    const deactivated = await deactivateNotice(id);
+    if (deactivated) {
+      console.log(`Notice ${id} deactivated by ${req.user.username}`);
+      res.json({ message: 'Notice deactivated successfully' });
+    } else {
+      res.status(404).json({ error: 'Notice not found' });
+    }
+  } catch (error) {
+    console.error('Error deactivating notice:', error);
+    res.status(500).json({ error: 'Failed to deactivate notice' });
   }
 });
 

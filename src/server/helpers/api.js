@@ -464,18 +464,26 @@ function initializeEventCache() {
 }
 
 // Replace the initializeEventCache function with enhanced version
-function initializeEventCacheEnhanced() {  // Initialize database first
-  initializeDB().then(() => {
-    console.log('Database initialized, starting cache management...');
-    // Initial cache management (which now also populates database)
-    manageEventCache();
-    
-    // Set up hourly checks
-    setInterval(() => {
+function initializeEventCacheEnhanced() {
+  // Initialize database first
+  initializeDB().then((dbConnected) => {
+    if (dbConnected) {
+      console.log('Database initialized, starting cache management...');
+      // Initial cache management (which now also populates database)
       manageEventCache();
-    }, 60 * 60 * 1000); // Check every hour
+      
+      // Set up hourly checks
+      setInterval(() => {
+        manageEventCache();
+      }, 60 * 60 * 1000); // Check every hour
+    } else {
+      console.log('Database initialization failed, using cache-only mode');
+      // Fall back to original cache system
+      initializeEventCache();
+    }
   }).catch(err => {
-    console.error('Database initialization failed, using cache-only mode:', err.message);
+    console.error('Database initialization error:', err.message);
+    console.log('Falling back to cache-only mode');
     // Fall back to original cache system
     initializeEventCache();
   });

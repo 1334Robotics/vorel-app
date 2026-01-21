@@ -25,10 +25,57 @@
     .container {
         min-height: auto;
     }
+
+    /* Override hero styles for changelog */
+    .hero {
+      text-align: center;
+      padding: var(--spacing-2xl) 0;
+    }
+
+    .hero .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 var(--spacing-lg);
+    }
+
+    .hero-logo {
+      max-width: 280px;
+      height: auto;
+      margin: 0 auto var(--spacing-xl) auto;
+      display: block;
+      filter: drop-shadow(var(--shadow-glow));
+      transition: transform 0.3s ease;
+    }
+
+    .hero-title {
+      color: var(--text-primary);
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-weight: 800;
+      margin: 0 0 var(--spacing-lg) 0;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
+    }
+
+    .hero-subtitle {
+      color: var(--text-secondary);
+      font-size: var(--text-lg);
+      font-weight: 500;
+      margin: 0;
+      text-align: center;
+      max-width: 600px;
+    }
+
     .changelog-section {
       max-width: 900px;
       margin: 0 auto;
-      padding: 20px;
+      padding: var(--spacing-xl);
     }
     .refresh-overlay {
       position: fixed;
@@ -36,7 +83,8 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.2);
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -72,12 +120,13 @@
       position: absolute;
       width: 60px;
       height: 60px;
-      background: rgba(0, 188, 212, 0.7);
-      border: 2px solid #008ba3;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      border: 2px solid var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--shadow-lg);
+      border-radius: var(--radius-sm);
     }
     
     .refresh-spinner .front {
@@ -107,70 +156,206 @@
     .loading-message {
       text-align: center;
       color: var(--text-secondary);
-      margin-top: 20px;
-      font-size: 1.1em;
+      margin-top: var(--spacing-lg);
+      font-size: var(--text-lg);
+      font-weight: 500;
     }
 
     .version-card {
-      background-color: var(--bg-card);
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 20px;
-      border: 1px solid var(--border);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-xl);
+      margin-bottom: var(--spacing-xl);
+      border: 1px solid var(--surface-border);
+      box-shadow: var(--shadow-md);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .version-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+    }
+
+    .version-card:hover {
+      background: var(--surface-hover);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--primary);
     }
     
     .version-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 15px;
+      margin-bottom: var(--spacing-lg);
+      padding-bottom: var(--spacing-md);
+      border-bottom: 2px solid var(--surface-border);
     }
     
     .version-title {
-      font-size: 1.3em;
-      font-weight: 600;
+      font-size: var(--text-xl);
+      font-weight: 700;
+      color: var(--text);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
     
     .version-date {
       color: var(--text-secondary);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      background: var(--bg-secondary);
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--surface-border);
     }
     
     .changelog-category {
-      margin-top: 15px;
+      margin-top: var(--spacing-lg);
     }
     
     .category-title {
-      font-size: 1.1em;
-      font-weight: 600;
-      margin-bottom: 10px;
-      padding-bottom: 5px;
-      border-bottom: 1px solid var(--border);
+      font-size: var(--text-lg);
+      font-weight: 700;
+      margin-bottom: var(--spacing-md);
+      padding-bottom: var(--spacing-xs);
+      border-bottom: 2px solid var(--primary);
+      color: var(--text);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: relative;
+    }
+
+    .category-title::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 30%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), transparent);
     }
     
     .category-features {
-      color: var(--primary);
+      border-bottom-color: var(--primary);
     }
     
     .change-list {
-      padding-left: 25px;
-      margin: 10px 0;
+      padding-left: var(--spacing-xl);
+      margin: var(--spacing-md) 0;
     }
     
     .change-list li {
-      margin-bottom: 8px;
+      margin-bottom: var(--spacing-sm);
+      color: var(--text);
+      line-height: 1.6;
+      position: relative;
+    }
+
+    .change-list li::marker {
+      color: var(--primary);
     }
     
     .back-link {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      margin-bottom: 20px;
+      gap: var(--spacing-xs);
+      margin-bottom: var(--spacing-xl);
       color: var(--primary);
       text-decoration: none;
+      font-weight: 600;
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      border: 2px solid var(--primary);
+      transition: all 0.3s ease;
     }
     
     .back-link:hover {
+      background: var(--primary);
+      color: white;
+      transform: translateX(-4px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .category-description {
+      color: var(--text);
+      line-height: 1.7;
+      font-size: var(--text-base);
+    }
+
+    .category-description br {
+      margin-bottom: var(--spacing-xs);
+    }
+
+    /* Footer specific styles */
+    .footer {
+      background: var(--surface);
+      border-top: 1px solid var(--surface-border);
+      padding: var(--spacing-2xl) 0;
+      margin-top: var(--spacing-3xl);
+      text-align: center;
+    }
+
+    .footer .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 var(--spacing-lg);
+    }
+
+    .footer-logo {
+      max-width: 200px;
+      height: auto;
+      margin: 0 auto var(--spacing-lg) auto;
+      display: block;
+      filter: drop-shadow(var(--shadow-sm));
+      transition: transform 0.3s ease;
+    }
+
+    .footer-logo:hover {
+      transform: scale(1.02);
+    }
+
+    .footer-subtitle {
+      color: var(--text-primary);
+      font-size: var(--text-lg);
+      font-weight: 600;
+      margin-bottom: var(--spacing-sm);
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .footer-info {
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .footer-copyright {
+      color: var(--text-tertiary);
+      font-size: var(--text-sm);
+    }
+
+    .footer-copyright a {
+      color: var(--primary);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .footer-copyright a:hover {
+      color: var(--accent);
       text-decoration: underline;
     }
   </style>
@@ -195,20 +380,46 @@
         Back to Home
       </a>
       
-      <!-- Loading animation -->
-      <div id="loading-container" class="refresh-overlay">
-        <div>
-          <div class="refresh-spinner">
-            <div class="cube-face front"></div>
-            <div class="cube-face back"></div>
-            <div class="cube-face right"></div>
-            <div class="cube-face left"></div>
-            <div class="cube-face top"></div>
-            <div class="cube-face bottom"></div>
+      <!-- Changelog Content -->
+      <% if (changelogData && changelogData.length > 0) { %>
+        <% changelogData.forEach(day => { %>
+          <div class="version-card">
+            <div class="version-header">
+              <div class="version-title"><%= day.date %></div>
+              <div class="version-date"><%= day.commits.length %> commit<%= day.commits.length !== 1 ? 's' : '' %></div>
+            </div>
+            
+            <div class="changelog-category">
+              <div class="category-title category-features">Changes</div>
+              <ul class="change-list">
+                <% day.commits.forEach(commit => { %>
+                  <li>
+                    <a href="<%= commit.url %>" target="_blank" style="color: inherit; text-decoration: none; border-bottom: 1px dotted var(--text-secondary);">
+                      <%= commit.message %>
+                    </a>
+                    <span style="font-size: 0.85em; color: var(--text-secondary); margin-left: 5px;">
+                      by <%= commit.author %> at <%= commit.time %> (<%= commit.sha %>)
+                    </span>
+                  </li>
+                <% }) %>
+              </ul>
+            </div>
           </div>
-          <div class="loading-message">Loading changelog data...</div>
+        <% }) %>
+      <% } else { %>
+        <div class="version-card">
+          <div class="version-header">
+            <div class="version-title">No Changelog Data</div>
+          </div>
+          <div class="changelog-category">
+            <p style="color: var(--text-secondary); text-align: center; padding: 20px;">
+              Unable to load changelog data. Please visit our 
+              <a href="https://github.com/1334Robotics/vorel-app/commits/main" target="_blank" style="color: var(--primary);">GitHub repository</a> 
+              to view recent changes.
+            </p>
+          </div>
         </div>
-      </div>
+      <% } %>
     </div>
   </div>
   
@@ -221,168 +432,5 @@
     </div>
   </footer>
   
-  <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      const changelogSection = document.querySelector('.changelog-section');
-      const backLink = document.querySelector('.back-link');
-      const loadingContainer = document.getElementById('loading-container');
-      
-      try {
-        // Fetch the repository's releases (tags)
-        const releasesResponse = await fetch('https://api.github.com/repos/1334Robotics/vorel-app/releases');
-        const releases = await releasesResponse.json();
-        
-        // Fetch commits
-        const commitsResponse = await fetch('https://api.github.com/repos/1334Robotics/vorel-app/commits?per_page=30');
-        const commits = await commitsResponse.json();
-        
-        // Remove loading indicator
-        loadingContainer.remove();
-        
-        // If we have releases/tags, organize by version
-        if (releases && releases.length > 0) {
-          // Group commits by release
-          releases.forEach(release => {
-            const versionCard = createVersionCard(
-              release.name || release.tag_name,
-              new Date(release.published_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-              release.body,
-              []
-            );
-            changelogSection.appendChild(versionCard);
-          });
-        } else {
-          // No releases, just show recent commits grouped by month
-          const commitsByMonth = groupCommitsByMonth(commits);
-          
-          for (const [monthYear, monthCommits] of Object.entries(commitsByMonth)) {
-            const versionCard = createVersionCard(
-              monthYear,
-              '',
-              null,
-              monthCommits
-            );
-            changelogSection.appendChild(versionCard);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching GitHub data:', error);
-        
-        // Replace loading indicator with error message
-        loadingContainer.innerHTML = `
-          <div style="text-align: center; padding: 20px;">
-            <p>Error loading changelog data. Please try again later.</p>
-            <p>If the problem persists, view our commits on 
-            <a href="https://github.com/1334Robotics/vorel-app/commits/main" target="_blank">GitHub</a>.</p>
-          </div>
-        `;
-      }
-    });
-    
-    // The rest of your JavaScript functions remain unchanged
-    function createVersionCard(title, date, description, commits) {
-      const card = document.createElement('div');
-      card.className = 'version-card';
-      
-      // Header with version title and date
-      const header = document.createElement('div');
-      header.className = 'version-header';
-      
-      const titleEl = document.createElement('div');
-      titleEl.className = 'version-title';
-      titleEl.textContent = title;
-      
-      const dateEl = document.createElement('div');
-      dateEl.className = 'version-date';
-      dateEl.textContent = date;
-      
-      header.appendChild(titleEl);
-      if (date) header.appendChild(dateEl);
-      card.appendChild(header);
-      
-      // If we have a description (from release notes)
-      if (description) {
-        const descEl = document.createElement('div');
-        descEl.className = 'changelog-category';
-        descEl.innerHTML = `<div class="category-description">${formatDescription(description)}</div>`;
-        card.appendChild(descEl);
-      }
-      
-      // If we have commits
-      if (commits && commits.length > 0) {
-        const commitsEl = document.createElement('div');
-        commitsEl.className = 'changelog-category';
-        
-        const titleEl = document.createElement('div');
-        titleEl.className = 'category-title category-features';
-        titleEl.textContent = 'Commits';
-        commitsEl.appendChild(titleEl);
-        
-        const listEl = document.createElement('ul');
-        listEl.className = 'change-list';
-        
-        commits.forEach(commit => {
-          const li = document.createElement('li');
-          
-          // Create commit message with link
-          const commitLink = document.createElement('a');
-          commitLink.href = commit.html_url;
-          commitLink.target = '_blank';
-          commitLink.textContent = commit.commit.message.split('\n')[0]; // First line of commit message
-          commitLink.style.color = 'inherit';
-          commitLink.style.textDecoration = 'none';
-          commitLink.style.borderBottom = '1px dotted var(--text-secondary)';
-          
-          li.appendChild(commitLink);
-          
-          // Add author and date info
-          const commitInfo = document.createElement('span');
-          commitInfo.style.fontSize = '0.85em';
-          commitInfo.style.color = 'var(--text-secondary)';
-          commitInfo.style.marginLeft = '5px';
-          
-          // Format date as "MMM D"
-          const commitDate = new Date(commit.commit.author.date);
-          const formattedDate = commitDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          
-          commitInfo.textContent = `by ${commit.commit.author.name} on ${formattedDate}`;
-          li.appendChild(commitInfo);
-          
-          listEl.appendChild(li);
-        });
-        
-        commitsEl.appendChild(listEl);
-        card.appendChild(commitsEl);
-      }
-      
-      return card;
-    }
-    
-    function formatDescription(description) {
-      // Convert markdown-style lists to HTML
-      return description
-        .replace(/\r\n/g, '\n')
-        .replace(/\n\n/g, '<br><br>')
-        .replace(/\n- /g, '<br>• ')
-        .replace(/\n\* /g, '<br>• ');
-    }
-    
-    function groupCommitsByMonth(commits) {
-      const groups = {};
-      
-      commits.forEach(commit => {
-        const date = new Date(commit.commit.author.date);
-        const monthYear = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        
-        if (!groups[monthYear]) {
-          groups[monthYear] = [];
-        }
-        
-        groups[monthYear].push(commit);
-      });
-      
-      return groups;
-    }
-  </script>
 </body>
 </html>

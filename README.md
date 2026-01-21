@@ -87,6 +87,33 @@ cp .env.example .env
    - Get a Nexus API key from [FIRST Nexus](https://frc.nexus)
    - Get a TBA API key from [The Blue Alliance](https://www.thebluealliance.com/account)
 
+### Real-time Updates Setup (Optional)
+
+Vorel supports real-time match updates via FRC Nexus webhooks for instant notifications instead of polling:
+
+1. **Configure the webhook token** in your `.env` file:
+   ```bash
+   NEXUS_WEBHOOK_TOKEN=your_webhook_token_here
+   ```
+
+2. **Register your webhook endpoint** at [frc.nexus/api](https://frc.nexus/api):
+   - **Webhook URL**: `https://your-domain.com/api/webhook/nexus`
+   - **Token**: Use the same token you set in `NEXUS_WEBHOOK_TOKEN`
+   - **Event Type**: Live event status (general) or Match status (team-specific)
+
+3. **Benefits of webhook setup**:
+   - Instant updates when match status changes (no 5-second polling delay)
+   - More efficient - only updates when there's actual data changes
+   - Lower server load and API usage
+   - Real-time notifications for teams using your instance
+
+4. **Monitoring**: 
+   - View webhook statistics in the admin dashboard at `/admin`
+   - Check endpoint `/api/webhook-stats` for webhook metrics
+   - Check endpoint `/api/sse-stats` for active connections
+
+Without webhook setup, the system will continue to work using 5-second polling, which is still very responsive.
+
 ## Usage
 
 ### Running locally

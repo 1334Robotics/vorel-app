@@ -88,28 +88,16 @@
           The ultimate companion for FRC teams tracking competition journeys with real-time updates
         </p>
         
-        <div class="api-update-notice">
-          <div class="notice-content">
-            <h3> API Update </h3>
-            <p>Vorel has received an API update to improve the live event data. If you encounter any issues while using the app, please report them to our <a href="https://github.com/1334Robotics/vorel-app/issues" target="_blank" rel="noopener">GitHub Issues</a> page.</p>
-          </div>
-        </div>
-
-        <div class="api-update-notice">
-          <div class="notice-content">
-            <h3> Beta Testing </h3>
-            <p> Want to try out the latest version of vorel before it releases? Visit <a href="https://beta.vorel.app" target="_blank" rel="noopener">beta.vorel.app</a> to try it out</p>
-          </div>
-        </div>
-        
-        <!-- <div class="championship-notice">
-          <div class="notice-content">
-            <h3>🎉 Championship Update 🎉</h3>
-            <p>Congratulations to all teams advancing to Championships! We've deployed a temporary workaround for championship division event keys between The Blue Alliance and FIRST Nexus. Your match schedules should now display correctly for all Championship events. </p>
-            <p>We appreciate your patience and apologize for any inconvenience this might have caused!</p>
-          </div>
-        </div>
-         -->
+        <% if (notices && notices.length > 0) { %>
+          <% notices.forEach(notice => { %>
+            <div class="<%= notice.type %>-notice">
+              <div class="notice-content">
+                <h3><%= notice.title %></h3>
+                <p><%- notice.content %></p>
+              </div>
+            </div>
+          <% }); %>
+        <% } %>
         
         <h2 class="section-title">Key Features</h2>
         <div class="features">
@@ -178,7 +166,7 @@
             
             <button type="submit" id="viewMatchesBtn">
               <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49L20.49 19L15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z" fill="white"/>
+                <path d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49L20.49 19L15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z" fill="currentColor"/>
               </svg>
               <span class="btn-text">View Matches</span>
               <span class="loading-bars" style="display:none;">
@@ -213,7 +201,7 @@
       <div class="footer-info">Data provided by FIRST Nexus API & The Blue Alliance APIs</div>
       <div class="footer-copyright">Vorel App © 2025 • 
   <a href="https://github.com/1334Robotics/vorel-app">GitHub</a> • 
-  <a href="https://vorel.app/changelog">Changelog</a>
+  <a href="/changelog">Changelog</a>
 </div>
     </div>
   </footer>
