@@ -98,21 +98,9 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
                 breakdown: []
               };
 
-              // For 2025, check the autoBonusAchieved field for Auto RP
-              if (rpBreakdown.autoBonusAchieved) {
-                match.rankingPoints.breakdown.push('Auto RP');
-                match.rankingPoints.total += 1;
-              }
+              // 2026 REBUILT season ranking points
 
-              // End-game Barge RP check
-              if (rpBreakdown.bargeBonusAchieved || 
-                  rpBreakdown.endgameRankingPoint || 
-                  rpBreakdown.bargeRankingPoint) {
-                match.rankingPoints.breakdown.push('Barge RP');
-                match.rankingPoints.total += 1;
-              }
-
-              // Ranking points for match results
+              // Ranking points for match results (Win = 3 RP, Tie = 1 RP)
               if (match.result === 'win') {
                 match.rankingPoints.breakdown.push('Win');
                 match.rankingPoints.total += 3;
@@ -121,17 +109,21 @@ async function processMatchDataWithTBAResults(matches, teamKey, eventKey) {
                 match.rankingPoints.total += 1;
               }
 
-              // Try multiple possible field names for coral RP
-              if (rpBreakdown.coralBonusAchieved !== undefined) {
-                if (rpBreakdown.coralBonusAchieved) {
-                  match.rankingPoints.breakdown.push('Coral RP');
-                  match.rankingPoints.total += 1;
-                }
+              // Energized Bonus RP - fuel scoring threshold
+              if (rpBreakdown.energizedAchieved) {
+                match.rankingPoints.breakdown.push('Energized');
+                match.rankingPoints.total += 1;
               }
 
-              // Coopertition bonus - try multiple possible field names
-              if (rpBreakdown.coopertitionBonus) {
-                match.rankingPoints.breakdown.push('Coopertition RP');
+              // Supercharged Bonus RP - high fuel scoring threshold
+              if (rpBreakdown.superchargedAchieved) {
+                match.rankingPoints.breakdown.push('Supercharged');
+                match.rankingPoints.total += 1;
+              }
+
+              // Traversal Bonus RP - endgame tower climbing
+              if (rpBreakdown.traversalAchieved) {
+                match.rankingPoints.breakdown.push('Traversal');
                 match.rankingPoints.total += 1;
               }
             }

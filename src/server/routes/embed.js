@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { fetchEventDetails, fetchTeamStatusAtEvent, fetchTBAEventDetails} = require('../helpers/api');
+const { fetchEventDetails, fetchTeamStatusAtEvent, fetchTBAEventDetails, fetchTeamPitLocation} = require('../helpers/api');
 const { processMatchDataWithTBAResults } = require('../helpers/matches');
 const { getParentDomains } = require('../helpers/twitch');
 
@@ -59,7 +59,7 @@ router.get('/matches', async (req, res) => {
 
     if (teamStatus && teamStatus.qual && teamStatus.qual.ranking) {
       
-      // For 2025 REEFSCAPE, we need to calculate the total RP correctly
+      // For 2026 season, we need to calculate the total RP correctly
       // First, check if ranking_points is directly available
       let totalRP = 0;
       
