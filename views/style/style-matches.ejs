@@ -239,7 +239,8 @@
 
   .team-ranking-section,
   .next-match-card,
-  .clock-section {
+  .clock-section,
+  .pit-location-section {
     background: var(--surface);
     border-radius: var(--radius-lg);
     padding: var(--spacing-lg);
@@ -253,7 +254,8 @@
 
   .team-ranking-section::before,
   .next-match-card::before,
-  .clock-section::before {
+  .clock-section::before,
+  .pit-location-section::before {
     content: '';
     position: absolute;
     top: 0;
@@ -268,7 +270,8 @@
 
   .team-ranking-section:hover,
   .next-match-card:hover,
-  .clock-section:hover {
+  .clock-section:hover,
+  .pit-location-section:hover {
     background: var(--surface-hover);
     transform: translateY(-4px);
     box-shadow: var(--shadow-md);
@@ -277,8 +280,24 @@
 
   .team-ranking-section:hover::before,
   .next-match-card:hover::before,
-  .clock-section:hover::before {
+  .clock-section:hover::before,
+  .pit-location-section:hover::before {
     opacity: 0.1;
+  }
+
+  .pit-location-display {
+    text-align: center;
+    padding: var(--spacing-md);
+  }
+
+  .pit-id {
+    font-size: 2.5em;
+    font-weight: bold;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 2px;
   }
 
   .info-title {

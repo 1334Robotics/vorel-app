@@ -77,6 +77,16 @@
       
       <!-- RIGHT COLUMN: Team info, next match, and clock -->
       <div class="info-column">
+        <!-- Pit Location Section -->
+        <% if (typeof pitLocation !== 'undefined' && pitLocation) { %>
+        <div class="pit-location-section">
+          <div class="info-title">Pit Location</div>
+          <div class="pit-location-display">
+            <div class="pit-id"><%= pitLocation.pitId %></div>
+          </div>
+        </div>
+        <% } %>
+        
         <!-- Team Ranking Section -->
         <% if (teamRanking) { %>
         <div class="team-ranking-section">
