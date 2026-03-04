@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { fetchEventDetails, fetchTeamStatusAtEvent, fetchTBAEventDetails} = require('../helpers/api');
+const { fetchEventDetails, fetchTeamStatusAtEvent, fetchTBAEventDetails, fetchTeamPitLocation} = require('../helpers/api');
 const { processMatchDataWithTBAResults, calculateRecordFromCompletedMatches } = require('../helpers/matches');
 const { getActiveNotices } = require('../helpers/database');
 // const apiRoutes = require('./api');
@@ -89,12 +89,20 @@ router.get('/', async (req, res) => {
     const formattedTBATeamKey = `frc${formattedTeamKey}`;
     const teamStatus = await fetchTeamStatusAtEvent(formattedTBATeamKey, eventKey);
     
+    // Fetch team pit location from FRC Nexus
+    let pitLocation = null;
+    try {
+      pitLocation = await fetchTeamPitLocation(eventKey, formattedTeamKey);
+    } catch (error) {
+      console.error('Error fetching pit location:', error);
+    }
+    
     // Extract ranking information
     let teamRanking = null;
 
     if (teamStatus && teamStatus.qual && teamStatus.qual.ranking) {
       
-      // For 2025 REEFSCAPE, we need to calculate the total RP correctly
+      // For 2026 season, we need to calculate the total RP correctly
       // First, check if ranking_points is directly available
       let totalRP = 0;
       
@@ -232,7 +240,8 @@ router.get('/', async (req, res) => {
       matchGroups,
       completedMatches,
       nowQueuing,
-      teamRanking
+      teamRanking,
+      pitLocation
     });
     
   } catch (error) {
@@ -247,6 +256,7 @@ router.get('/', async (req, res) => {
       completedMatches: [],
       nowQueuing: null,
       teamRanking: null,
+      pitLocation: null,
       errorMessage: `Failed to generate match data: ${error.message}`
     });
   }

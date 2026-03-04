@@ -310,15 +310,24 @@ async function fallbackSearchTBAEvents(query, year) {
 function mapEventKey(eventKey, sourceSystem, targetSystem) {
   // Championship division mapping between TBA and Nexus
   const tbaToNexusMap = {
-    // 2025 Championship divisions
-    '2025arc': '2025archimedes', // Archimedes Division
-    '2025cur': '2025curie',  // Curie Division
-    '2025gal': '2025galileo',  // Galileo Division
-    '2025hop': '2025hopper',  // Hopper Division
-    '2025joh': '2025johnson',  // Johnson Division
-    '2025mil': '2025milstein',  // Milstein Division
-    '2025new': '2025newton',  // Newton Division
-    '2025dal': '2025daly',  // Daly Division
+    // 2026 Championship divisions
+    '2026arc': '2026archimedes', // Archimedes Division
+    '2026cur': '2026curie',  // Curie Division
+    '2026gal': '2026galileo',  // Galileo Division
+    '2026hop': '2026hopper',  // Hopper Division
+    '2026joh': '2026johnson',  // Johnson Division
+    '2026mil': '2026milstein',  // Milstein Division
+    '2026new': '2026newton',  // Newton Division
+    '2026dal': '2026daly',  // Daly Division
+    // 2025 Championship divisions (keep for backward compatibility)
+    '2025arc': '2025archimedes',
+    '2025cur': '2025curie',
+    '2025gal': '2025galileo',
+    '2025hop': '2025hopper',
+    '2025joh': '2025johnson',
+    '2025mil': '2025milstein',
+    '2025new': '2025newton',
+    '2025dal': '2025daly',
   };
   
   const nexusToTbaMap = {};
@@ -598,12 +607,56 @@ async function getTeamEventsWithCache(teamKey, year = new Date().getFullYear()) 
 // Run enhanced initialization when module is loaded
 // initializeEventCacheEnhanced(); // Commented out - let main server control initialization
 
+// Fetch team pit location from FRC Nexus pit map API
+async function fetchTeamPitLocation(eventKey, teamKey) {
+  try {
+    const nexusEventKey = mapEventKey(eventKey, 'tba', 'nexus');
+    const url = `${BASE_URL}/${nexusEventKey}/pitmap`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Nexus-Api-Key': Nexus_Api_Key
+      }
+    });
+    
+    if (!response.ok) {
+      // Pit map may not be available for all events
+      return null;
+    }
+    
+    const pitMapData = await response.json();
+    
+    // Format teamKey to just the number
+    const teamNumber = String(teamKey).replace(/^frc/i, '');
+    
+    // Search through pits object to find the team
+    if (pitMapData && pitMapData.pits) {
+      for (const [pitId, pitInfo] of Object.entries(pitMapData.pits)) {
+        if (pitInfo.team === teamNumber) {
+          return {
+            pitId: pitId,
+            team: pitInfo.team,
+            position: pitInfo.position,
+            size: pitInfo.size
+          };
+        }
+      }
+    }
+    
+    return null; // Team not found in pit map
+  } catch (error) {
+    console.error('Error fetching pit location:', error.message);
+    return null;
+  }
+}
+
 module.exports = {
   fetchEventDetails,
   fetchTeamStatusAtEvent,
   fetchEventMatchResults,
   fetchTBAEventDetails,
   fetchTeamEvents,
+  fetchTeamPitLocation,
   cacheTeamEvents,
   getTeamEventsWithCache,
   searchTBAEvents,
