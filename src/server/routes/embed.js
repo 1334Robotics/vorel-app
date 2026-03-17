@@ -228,4 +228,83 @@ router.get('/stream', async (req, res) => {
   }
 });
 
+// GET /embed/webcast - Auto-detect and embed webcast for an event from TBA
+router.get('/webcast', async (req, res) => {
+  const { eventKey: rawEventKey, height = '480', width = '100%', borderRadius = '0px', index = '0' } = req.query;
+  const eventKey = rawEventKey ? rawEventKey.toLowerCase() : rawEventKey;
+
+  if (!eventKey) {
+    return res.status(400).json({ error: 'Missing eventKey parameter' });
+  }
+
+  try {
+    const tbaEvent = await fetchTBAEventDetails(eventKey);
+    if (!tbaEvent) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    if (!Array.isArray(tbaEvent.webcasts) || tbaEvent.webcasts.length === 0) {
+      return res.status(404).json({ error: 'No webcasts found for this event' });
+    }
+
+    // Pick the webcast by index (default first)
+    const webcastIndex = Math.min(parseInt(index) || 0, tbaEvent.webcasts.length - 1);
+    const webcast = tbaEvent.webcasts[webcastIndex];
+
+    let embedSrc = '';
+    let isTwitch = false;
+
+    if (webcast.type === 'twitch') {
+      isTwitch = true;
+      const parentDomains = getParentDomains(req);
+      if (parentDomains.length === 0) {
+        return res.status(400).json({
+          error: 'Twitch embeds require a parent domain. Provide ?parent=yourdomain.com or embed from a web page so the domain can be auto-detected.'
+        });
+      }
+      const parentParam = parentDomains.map(d => `parent=${encodeURIComponent(d)}`).join('&');
+      embedSrc = `https://player.twitch.tv/?channel=${encodeURIComponent(webcast.channel)}&${parentParam}`;
+    } else if (webcast.type === 'youtube') {
+      // TBA youtube webcasts store the video/channel ID in the channel field
+      const videoId = webcast.channel;
+      embedSrc = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}`;
+    } else if (webcast.type === 'iframe') {
+      // Some events use direct iframe URLs
+      embedSrc = webcast.channel;
+    } else {
+      return res.status(400).json({
+        error: `Unsupported webcast type: ${webcast.type}. Supported: twitch, youtube, iframe`,
+        webcast
+      });
+    }
+
+    res.header('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'text/html');
+
+    const sanitizedEventName = (tbaEvent.name || eventKey).replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+    res.send(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcast: ${sanitizedEventName}</title>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: transparent; }
+        .video-container { width: 100%; height: 100%; overflow: hidden; border-radius: ${borderRadius}; background: #000; line-height: 0; }
+        iframe { width: 100%; height: 100%; border: 0; display: block; }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <iframe src="${embedSrc}" width="${width}" height="${height}" frameborder="0" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+    </div>
+</body>
+</html>`);
+  } catch (error) {
+    console.error('Error generating webcast embed:', error);
+    res.status(500).json({ error: 'Failed to fetch webcast data' });
+  }
+});
+
 module.exports = router;
