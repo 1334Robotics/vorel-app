@@ -107,8 +107,12 @@ async function startServer() {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     // X-Content-Type-Options
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    // X-Frame-Options
-    res.setHeader('X-Frame-Options', 'DENY');
+    // X-Frame-Options - allow embedding for /embed routes
+    if (req.path.startsWith('/embed')) {
+      res.removeHeader('X-Frame-Options');
+    } else {
+      res.setHeader('X-Frame-Options', 'DENY');
+    }
     // X-XSS-Protection
     res.setHeader('X-XSS-Protection', '1; mode=block');
     // Referrer Policy
