@@ -4,6 +4,13 @@ const { fetchEventDetails, fetchTeamStatusAtEvent, fetchTBAEventDetails, fetchTe
 const { processMatchDataWithTBAResults } = require('../helpers/matches');
 const { getParentDomains } = require('../helpers/twitch');
 
+// Allow cross-origin embedding for all embed routes
+router.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('X-Frame-Options', ''); // Clear any inherited X-Frame-Options
+  next();
+});
+
 router.get('/', async (req, res) => {
     res.status(200).json({ message: 'Embed endpoint is online but it seems that you haven\'t defined which one!' });
 })
