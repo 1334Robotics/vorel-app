@@ -110,18 +110,8 @@
   
   <%- include('../partials/scripts', { eventKey }) %>
   <script>
-    // Initialize match toggling
+    // Initialize embed
     document.addEventListener('DOMContentLoaded', function() {
-      const matchHeaders = document.querySelectorAll('.match-header');
-      matchHeaders.forEach(header => {
-        header.addEventListener('click', function() {
-          const details = this.parentNode.querySelector('.match-details');
-          if (details) {
-            details.classList.toggle('active');
-          }
-        });
-      });
-      
       // Hide the loading animation when DOM is loaded
       const refreshOverlay = document.getElementById('refresh-overlay');
       if (refreshOverlay) {
@@ -129,7 +119,7 @@
           refreshOverlay.classList.remove('active');
         }, 200);
       }
-      
+
       // Setup refresh animation
       setupRefreshAnimation();
     });
@@ -172,17 +162,6 @@
               
               // Hide the animation
               refreshOverlay.classList.remove('active');
-              
-              // Re-initialize match toggling
-              const matchHeaders = document.querySelectorAll('.match-header');
-              matchHeaders.forEach(header => {
-                header.addEventListener('click', function() {
-                  const details = this.parentNode.querySelector('.match-details');
-                  if (details) {
-                    details.classList.toggle('active');
-                  }
-                });
-              });
             })
             .catch(error => {
               console.error('Error fetching updated content:', error);
