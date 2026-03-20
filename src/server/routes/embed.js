@@ -172,7 +172,7 @@ router.get('/matches', async (req, res) => {
   }
 });
 
-// GET /embed/stream - Embeddable Twitch stream for an event
+// GET /embed/stream - Embeddable stream (Twitch/YouTube) for an event
 router.get('/stream', async (req, res) => {
   const { eventKey: rawEventKey, height = '480' } = req.query;
   const eventKey = rawEventKey ? rawEventKey.toLowerCase() : rawEventKey;
@@ -194,12 +194,19 @@ router.get('/stream', async (req, res) => {
     const endDate = new Date(tbaEvent.end_date);
     endDate.setHours(23, 59, 59, 999); // Include the whole last day
 
-    // Find Twitch stream(s) from webcasts
-    let twitchChannel = null;
+    // Find stream from webcasts (supports Twitch and YouTube)
+    let streamType = null;
+    let streamChannel = null;
     if (Array.isArray(tbaEvent.webcasts)) {
+      // Prefer Twitch, then YouTube
       const twitchWebcast = tbaEvent.webcasts.find(wc => wc.type === 'twitch' && wc.channel);
+      const youtubeWebcast = tbaEvent.webcasts.find(wc => wc.type === 'youtube' && wc.channel);
       if (twitchWebcast) {
-        twitchChannel = twitchWebcast.channel;
+        streamType = 'twitch';
+        streamChannel = twitchWebcast.channel;
+      } else if (youtubeWebcast) {
+        streamType = 'youtube';
+        streamChannel = youtubeWebcast.channel;
       }
     }
 
@@ -209,13 +216,14 @@ router.get('/stream', async (req, res) => {
     } else if (today > endDate) {
       streamStatus = 'ended';
     } else {
-      streamStatus = twitchChannel ? 'live' : 'no_stream';
+      streamStatus = streamChannel ? 'live' : 'no_stream';
     }
 
     res.render('pages/stream', {
       eventKey,
       eventName: tbaEvent.name,
-      twitchChannel,
+      streamType,
+      streamChannel,
       streamStatus,
       containerHeight: parseInt(height) > 0 ? parseInt(height) : 480,
       startDate,
