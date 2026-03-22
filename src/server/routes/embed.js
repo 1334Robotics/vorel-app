@@ -254,9 +254,50 @@ router.get('/webcast', async (req, res) => {
       return res.status(404).json({ error: 'No webcasts found for this event' });
     }
 
-    // Pick the webcast by index (default first)
-    const webcastIndex = Math.min(parseInt(index) || 0, tbaEvent.webcasts.length - 1);
-    const webcast = tbaEvent.webcasts[webcastIndex];
+    // Pick the best webcast: prefer active (today's date), then closest dated, then undated
+    let webcast;
+    const explicitIndex = parseInt(index);
+    if (explicitIndex > 0) {
+      // Explicit index override (non-zero) - use it directly
+      webcast = tbaEvent.webcasts[Math.min(explicitIndex, tbaEvent.webcasts.length - 1)];
+    } else {
+      // Smart selection: prioritize by date relevance
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+
+      // Separate webcasts into categories
+      const todayWebcasts = [];
+      const datedWebcasts = [];
+      const undatedWebcasts = [];
+
+      tbaEvent.webcasts.forEach(wc => {
+        if (wc.date) {
+          if (wc.date === todayStr) {
+            todayWebcasts.push(wc);
+          } else {
+            datedWebcasts.push(wc);
+          }
+        } else {
+          undatedWebcasts.push(wc);
+        }
+      });
+
+      if (todayWebcasts.length > 0) {
+        // Active: matches today's date
+        webcast = todayWebcasts[0];
+      } else if (datedWebcasts.length > 0) {
+        // Sort dated webcasts by proximity to today (closest first)
+        datedWebcasts.sort((a, b) => {
+          const diffA = Math.abs(new Date(a.date) - today);
+          const diffB = Math.abs(new Date(b.date) - today);
+          return diffA - diffB;
+        });
+        webcast = datedWebcasts[0];
+      } else {
+        // Fallback to undated (or first available)
+        webcast = undatedWebcasts[0] || tbaEvent.webcasts[0];
+      }
+    }
 
     let embedSrc = '';
     let isTwitch = false;
